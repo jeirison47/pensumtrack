@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  displayName  String
+  auth0Id      String?  @unique
+  authProvider String   @default("local")
+  isActive     Boolean  @default(true)
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  settings StudentProfile?
+}
+
+model Career {
+  id                 String    @id @default(cuid())
+  name               String
+  university         String
+  totalCredits       Int
+  durationSemesters  Int
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+
+  subjects Subject[]
+  profiles StudentProfile[]
+}
+
+model Subject {
+  code          String   @id
+  name          String
+  credits       Int
+  semester      Int
+  area          String?
+  careerId      String
+  prerequisites String[] // códigos de materias requeridas
+  corequisites  String[] // códigos de materias simultáneas
+  createdAt     DateTime @default(now())
+
+  career          Career           @relation(fields: [careerId], references: [id])
+  studentSubjects StudentSubject[]
+}
+
+model StudentProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  careerId        String
+  currentSemester Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id])
+  career   Career          @relation(fields: [careerId], references: [id])
+  subjects StudentSubject[]
+  preselection Preselection?
+}
+
+model StudentSubject {
+  id         String        @id @default(cuid())
+  profileId  String
+  subjectCode String
+  status     SubjectStatus @default(PENDING)
+  grade      Float?
+  period     String?
+  updatedAt  DateTime      @updatedAt
+
+  subject Subject        @relation(fields: [subjectCode], references: [code])
+  profile StudentProfile @relation(fields: [profileId], references: [id])
+
+  @@unique([profileId, subjectCode])
+}
+
+model Preselection {
+  id        String   @id @default(cuid())
+  profileId String   @unique
+  period    String
+  subjects  String[] // códigos de materias preseleccionadas
+  updatedAt DateTime @updatedAt
+
+  profile StudentProfile @relation(fields: [profileId], references: [id])
+}
+
+enum SubjectStatus {
+  PENDING
+  IN_PROGRESS
+  PASSED
+  FAILED
+  PRESELECTED
+}
