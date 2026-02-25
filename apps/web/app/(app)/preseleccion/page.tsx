@@ -17,13 +17,16 @@ const PERIODS = [
 export default function PreseleccionPage() {
   const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress } = useProgress()
   const { updatePreselectionLocally } = useProgressStore()
-  const [period, setPeriod] = useState(profile?.preselection?.period ?? PERIODS[0])
+  const [period, setPeriod] = useState(PERIODS[3]) // default: período más próximo
   const [showSummary, setShowSummary] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
 
   const allSubjects = profile?.career.subjects ?? []
+
+  // Materias del periodo actualmente seleccionado
+  const currentPeriodCodes = profile?.preselections.find((p) => p.period === period)?.subjects ?? []
 
   const availableSubjects = useMemo(() =>
     allSubjects.filter((s) => {
@@ -33,17 +36,17 @@ export default function PreseleccionPage() {
   [allSubjects, getSubjectStatus])
 
   const warnings = useMemo(() =>
-    validatePreselection(preselectedCodes, allSubjects),
-  [preselectedCodes, allSubjects])
+    validatePreselection(currentPeriodCodes, allSubjects),
+  [currentPeriodCodes, allSubjects])
 
   const totalCredits = allSubjects
-    .filter((s) => preselectedCodes.includes(s.code))
+    .filter((s) => currentPeriodCodes.includes(s.code))
     .reduce((sum, s) => sum + s.credits, 0)
 
   const handleToggle = async (code: string) => {
-    const next = preselectedCodes.includes(code)
-      ? preselectedCodes.filter((c) => c !== code)
-      : [...preselectedCodes, code]
+    const next = currentPeriodCodes.includes(code)
+      ? currentPeriodCodes.filter((c) => c !== code)
+      : [...currentPeriodCodes, code]
     updatePreselectionLocally(period, next)
     await progressApi.updatePreselection(period, next)
     invalidateProgress()
@@ -52,7 +55,7 @@ export default function PreseleccionPage() {
   const handleConfirm = async () => {
     setSaving(true)
     try {
-      await progressApi.updatePreselection(period, preselectedCodes)
+      await progressApi.updatePreselection(period, currentPeriodCodes)
       invalidateProgress()
     } finally {
       setSaving(false)
@@ -75,7 +78,7 @@ export default function PreseleccionPage() {
     <div className="flex flex-col gap-4">
       <div className="flex justify-between text-sm">
         <span style={{ color: 'var(--muted)' }}>Materias</span>
-        <span className="font-bold" style={{ color: 'var(--text)' }}>{preselectedCodes.length} / 5</span>
+        <span className="font-bold" style={{ color: 'var(--text)' }}>{currentPeriodCodes.length} / 5</span>
       </div>
       <div className="flex justify-between text-sm">
         <span style={{ color: 'var(--muted)' }}>Créditos</span>
@@ -90,9 +93,9 @@ export default function PreseleccionPage() {
         </div>
       ))}
 
-      {preselectedCodes.length > 0 && (
+      {currentPeriodCodes.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          {allSubjects.filter((s) => preselectedCodes.includes(s.code)).map((s) => (
+          {allSubjects.filter((s) => currentPeriodCodes.includes(s.code)).map((s) => (
             <div key={s.code} className="flex items-center justify-between text-xs p-2 rounded-lg"
                  style={{ background: 'var(--surface2)' }}>
               <span style={{ color: 'var(--text)' }}>{s.name}</span>
@@ -102,7 +105,7 @@ export default function PreseleccionPage() {
         </div>
       )}
 
-      <button onClick={handleConfirm} disabled={saving || preselectedCodes.length === 0}
+      <button onClick={handleConfirm} disabled={saving || currentPeriodCodes.length === 0}
               className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40"
               style={{ background: 'var(--accent)', color: '#0b0d12' }}>
         <CheckCircle size={16} />
@@ -120,7 +123,7 @@ export default function PreseleccionPage() {
             Preselección
           </h1>
           <p className="text-sm mb-5" style={{ color: 'var(--muted)' }}>
-            Selecciona las materias que planeas tomar el próximo período.
+            Selecciona las materias que planeas tomar en cada período.
           </p>
 
           {/* Selector de período */}
@@ -129,17 +132,24 @@ export default function PreseleccionPage() {
               PERÍODO
             </label>
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {PERIODS.map((p) => (
-                <button key={p} onClick={() => setPeriod(p)}
-                        className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                        style={{
-                          background: period === p ? 'var(--accent2)' : 'var(--surface)',
-                          color: period === p ? '#0b0d12' : 'var(--muted)',
-                          border: `1px solid ${period === p ? 'var(--accent2)' : 'var(--pt-border)'}`,
-                        }}>
-                  {p}
-                </button>
-              ))}
+              {PERIODS.map((p) => {
+                const hasPresel = (profile?.preselections.find((pr) => pr.period === p)?.subjects.length ?? 0) > 0
+                return (
+                  <button key={p} onClick={() => setPeriod(p)}
+                          className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all relative"
+                          style={{
+                            background: period === p ? 'var(--accent2)' : 'var(--surface)',
+                            color: period === p ? '#0b0d12' : 'var(--muted)',
+                            border: `1px solid ${period === p ? 'var(--accent2)' : 'var(--pt-border)'}`,
+                          }}>
+                    {p}
+                    {hasPresel && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                            style={{ background: 'var(--accent)' }} />
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -151,7 +161,7 @@ export default function PreseleccionPage() {
               </p>
             ) : (
               availableSubjects.map((s) => {
-                const isSelected = preselectedCodes.includes(s.code)
+                const isSelected = currentPeriodCodes.includes(s.code)
                 const prereqsMet = s.prerequisites.every((code) => {
                   const st = getSubjectStatus(code)
                   return st === 'passed' || st === 'in-progress'
@@ -195,7 +205,7 @@ export default function PreseleccionPage() {
         <aside className="hidden md:block w-72 flex-shrink-0">
           <div className="sticky top-24 p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
             <h3 className="font-bold text-sm mb-4" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-              Resumen
+              Resumen — {period}
             </h3>
             <Summary />
           </div>
@@ -209,7 +219,7 @@ export default function PreseleccionPage() {
                 style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-              {preselectedCodes.length} materia{preselectedCodes.length !== 1 ? 's' : ''} · {totalCredits} cr.
+              {currentPeriodCodes.length} materia{currentPeriodCodes.length !== 1 ? 's' : ''} · {totalCredits} cr. · {period}
             </span>
             {warnings.length > 0 && <AlertTriangle size={14} style={{ color: 'var(--warn)' }} />}
           </div>

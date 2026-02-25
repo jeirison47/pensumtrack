@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const allSubjects = profile.career.subjects
   const passed     = profile.subjects.filter((s) => s.status === 'PASSED').length
   const inProgress = profile.subjects.filter((s) => s.status === 'IN_PROGRESS').length
-  const presel     = profile.preselection?.subjects.length ?? 0
+  const presel     = profile.preselections.reduce((sum, p) => sum + p.subjects.length, 0)
   const available  = allSubjects.filter((s) => getSubjectStatus(s.code) === 'available').length
   const earnedCredits = allSubjects
     .filter((s) => profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'PASSED'))

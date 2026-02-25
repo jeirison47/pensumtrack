@@ -26,11 +26,17 @@ export const useProgressStore = create<ProgressState>((set) => ({
   updatePreselectionLocally: (period, subjectCodes) =>
     set((state) => {
       if (!state.profile) return state
-      return {
-        profile: {
-          ...state.profile,
-          preselection: { id: '', period, subjects: subjectCodes },
-        },
+      const exists = state.profile.preselections.find((p) => p.period === period)
+      let preselections
+      if (subjectCodes.length === 0) {
+        preselections = state.profile.preselections.filter((p) => p.period !== period)
+      } else if (exists) {
+        preselections = state.profile.preselections.map((p) =>
+          p.period === period ? { ...p, subjects: subjectCodes } : p
+        )
+      } else {
+        preselections = [...state.profile.preselections, { id: '', period, subjects: subjectCodes }]
       }
+      return { profile: { ...state.profile, preselections } }
     }),
 }))

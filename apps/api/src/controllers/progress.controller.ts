@@ -32,7 +32,7 @@ export const getMyProgress = async (c: Context) => {
         },
       },
       subjects: true,
-      preselection: true,
+      preselections: { orderBy: { period: 'asc' } },
     },
   })
 
@@ -65,7 +65,7 @@ export const upsertProfile = async (c: Context) => {
         include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } },
       },
       subjects: true,
-      preselection: true,
+      preselections: { orderBy: { period: 'asc' } },
     },
   })
 
@@ -114,10 +114,18 @@ export const updatePreselection = async (c: Context) => {
   const profile = await prisma.studentProfile.findUnique({ where: { userId } })
   if (!profile) return c.json({ error: 'Perfil no encontrado. Selecciona una carrera primero.' }, 404)
 
+  // Si no hay materias, eliminar el registro del periodo (si existe)
+  if (subjectCodes.length === 0) {
+    await prisma.preselection.deleteMany({
+      where: { profileId: profile.id, period },
+    })
+    return c.json({ data: { profileId: profile.id, period, subjects: [] } })
+  }
+
   const preselection = await prisma.preselection.upsert({
-    where: { profileId: profile.id },
+    where: { profileId_period: { profileId: profile.id, period } },
     create: { profileId: profile.id, period, subjects: subjectCodes },
-    update: { period, subjects: subjectCodes },
+    update: { subjects: subjectCodes },
   })
 
   return c.json({ data: preselection })

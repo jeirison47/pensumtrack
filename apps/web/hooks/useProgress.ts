@@ -26,7 +26,8 @@ export function useProgress() {
     if (data?.data !== undefined) setProfile(data.data)
   }, [data, setProfile])
 
-  const preselectedCodes = profile?.preselection?.subjects ?? []
+  // Unión de todos los periodos para mostrar estado "preselected" en pensum/mapa
+  const preselectedCodes = profile?.preselections.flatMap((p) => p.subjects) ?? []
 
   const getSubjectStatus = (subjectCode: string): SubjectStatus => {
     if (!profile) return 'pending'

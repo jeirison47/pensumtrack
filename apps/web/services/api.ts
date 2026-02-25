@@ -142,6 +142,12 @@ export interface StudentSubjectDB {
   period: string | null
 }
 
+export interface PreselectionDB {
+  id: string
+  period: string
+  subjects: string[]
+}
+
 export interface StudentProfileFull {
   id: string
   userId: string
@@ -149,9 +155,5 @@ export interface StudentProfileFull {
   currentSemester: number
   career: CareerWithSubjects
   subjects: StudentSubjectDB[]
-  preselection: {
-    id: string
-    period: string
-    subjects: string[]
-  } | null
+  preselections: PreselectionDB[]
 }
