@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { universityApi, careerApi, progressApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useProgressStore } from '@/store/useProgressStore'
@@ -12,6 +12,7 @@ type Step = 'university' | 'career'
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { isAuthenticated } = useAuthStore()
   const { setProfile } = useProgressStore()
 
@@ -53,6 +54,8 @@ export default function OnboardingPage() {
     try {
       const res = await progressApi.upsertProfile(selectedCareer, semester)
       setProfile(res.data)
+      // Actualizar el caché para que el dashboard no sirva un null obsoleto
+      queryClient.setQueryData(['progress'], { data: res.data })
       router.replace('/dashboard')
     } catch (err) {
       console.error(err)

@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useProgressStore } from '@/store/useProgressStore'
 import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, LogOut } from 'lucide-react'
 
 const nav = [
@@ -15,7 +17,15 @@ const nav = [
 
 export function TopNav() {
   const pathname = usePathname()
+  const queryClient = useQueryClient()
   const { user, logout } = useAuthStore()
+  const { setProfile } = useProgressStore()
+
+  const handleLogout = () => {
+    queryClient.clear()
+    setProfile(null)
+    logout()
+  }
 
   return (
     <header className="hidden md:flex items-center justify-between px-8 py-4 sticky top-0 z-50"
@@ -46,7 +56,7 @@ export function TopNav() {
 
       <div className="flex items-center gap-3">
         <span className="text-sm" style={{ color: 'var(--muted)' }}>{user?.displayName}</span>
-        <button onClick={logout} className="p-2 rounded-lg transition-colors hover:opacity-80"
+        <button onClick={handleLogout} className="p-2 rounded-lg transition-colors hover:opacity-80"
                 style={{ color: 'var(--muted)' }}>
           <LogOut size={18} />
         </button>

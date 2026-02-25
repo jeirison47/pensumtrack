@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { authApi } from '@/services/api'
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 1000 * 60 * 5 } },
+  defaultOptions: { queries: { retry: 1, staleTime: 0 } },
 })
 
 function AuthLoader({ children }: { children: React.ReactNode }) {
@@ -19,7 +19,7 @@ function AuthLoader({ children }: { children: React.ReactNode }) {
 
     authApi.me()
       .then((res) => { setAuth(res.data, token); setReady(true) })
-      .catch(() => { logout(); setReady(true) })
+      .catch(() => { queryClient.clear(); logout(); setReady(true) })
   }, [setAuth, logout])
 
   if (!ready) return (
