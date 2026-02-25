@@ -15,7 +15,7 @@ const PERIODS = [
 ]
 
 export default function PreseleccionPage() {
-  const { profile, isLoading, getSubjectStatus, preselectedCodes } = useProgress()
+  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress } = useProgress()
   const { updatePreselectionLocally } = useProgressStore()
   const [period, setPeriod] = useState(profile?.preselection?.period ?? PERIODS[0])
   const [showSummary, setShowSummary] = useState(false)
@@ -46,12 +46,14 @@ export default function PreseleccionPage() {
       : [...preselectedCodes, code]
     updatePreselectionLocally(period, next)
     await progressApi.updatePreselection(period, next)
+    invalidateProgress()
   }
 
   const handleConfirm = async () => {
     setSaving(true)
     try {
       await progressApi.updatePreselection(period, preselectedCodes)
+      invalidateProgress()
     } finally {
       setSaving(false)
     }

@@ -18,7 +18,7 @@ const LEGEND: { status: SubjectStatus; label: string; color: string }[] = [
 ]
 
 export default function MapaPage() {
-  const { profile, isLoading, getSubjectStatus, preselectedCodes } = useProgress()
+  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
   const [selected, setSelected] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
@@ -33,6 +33,7 @@ export default function MapaPage() {
   const handleChangeStatus = async (code: string, next: SubjectStatusDB) => {
     updateSubjectLocally(code, next)
     await progressApi.updateSubject(code, next)
+    invalidateProgress()
   }
 
   if (isLoading) return (

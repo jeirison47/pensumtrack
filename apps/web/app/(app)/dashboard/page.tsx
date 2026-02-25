@@ -11,7 +11,7 @@ import { BookOpen, CheckCircle, Clock, Star } from 'lucide-react'
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { profile, isLoading, getSubjectStatus } = useProgress()
+  const { profile, isLoading, getSubjectStatus, invalidateProgress } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
 
   useEffect(() => {
@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const handleMarkPassed = async (code: string) => {
     updateSubjectLocally(code, 'PASSED')
     await progressApi.updateSubject(code, 'PASSED')
+    invalidateProgress()
   }
 
   const stats = [

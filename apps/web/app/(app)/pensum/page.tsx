@@ -41,7 +41,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 export default function PensumPage() {
-  const { profile, isLoading, getSubjectStatus, preselectedCodes } = useProgress()
+  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -78,6 +78,7 @@ export default function PensumPage() {
   const handleChangeStatus = async (code: string, next: SubjectStatusDB) => {
     updateSubjectLocally(code, next)
     await progressApi.updateSubject(code, next)
+    invalidateProgress()
   }
 
   if (isLoading) return (

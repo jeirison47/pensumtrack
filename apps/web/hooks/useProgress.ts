@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useProgressStore } from '@/store/useProgressStore'
@@ -11,12 +11,16 @@ import type { Subject, StudentSubject, SubjectStatus } from '@pensumtrack/types'
 export function useProgress() {
   const { isAuthenticated } = useAuthStore()
   const { profile, setProfile } = useProgressStore()
+  const queryClient = useQueryClient()
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['progress'],
     queryFn: () => progressApi.me(),
     enabled: isAuthenticated,
   })
+
+  const invalidateProgress = () =>
+    queryClient.invalidateQueries({ queryKey: ['progress'] })
 
   useEffect(() => {
     if (data?.data !== undefined) setProfile(data.data)
@@ -41,5 +45,5 @@ export function useProgress() {
     return calcSubjectStatus(subject, studentSubjects, preselectedCodes)
   }
 
-  return { profile, isLoading, refetch, getSubjectStatus, preselectedCodes }
+  return { profile, isLoading, refetch, getSubjectStatus, preselectedCodes, invalidateProgress }
 }
