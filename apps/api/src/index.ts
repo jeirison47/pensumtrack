@@ -17,10 +17,14 @@ app.use('*', cors({
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }))
 
-// Routes (se agregan aquí)
-// app.route('/api/auth', authRoutes)
-// app.route('/api/careers', careerRoutes)
-// app.route('/api/progress', progressRoutes)
+// Routes
+import { authRoutes } from './routes/auth.routes.js'
+import { careerRoutes } from './routes/career.routes.js'
+import { progressRoutes } from './routes/progress.routes.js'
+
+app.route('/api/auth', authRoutes)
+app.route('/api/careers', careerRoutes)
+app.route('/api/progress', progressRoutes)
 
 // 404
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
