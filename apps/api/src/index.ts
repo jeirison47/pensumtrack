@@ -21,8 +21,10 @@ app.get('/health', (c) => c.json({ status: 'ok' }))
 import { authRoutes } from './routes/auth.routes.js'
 import { careerRoutes } from './routes/career.routes.js'
 import { progressRoutes } from './routes/progress.routes.js'
+import { universityRoutes } from './routes/university.routes.js'
 
 app.route('/api/auth', authRoutes)
+app.route('/api/universities', universityRoutes)
 app.route('/api/careers', careerRoutes)
 app.route('/api/progress', progressRoutes)
 

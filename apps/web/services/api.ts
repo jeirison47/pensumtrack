@@ -38,10 +38,18 @@ export const authApi = {
   me: () => request<{ data: User }>('/auth/me'),
 }
 
+// ─── Universities ─────────────────────────────────────────────────────────────
+
+export const universityApi = {
+  list: () => request<{ data: UniversitySummary[] }>('/universities'),
+  get: (id: string) => request<{ data: UniversityWithCareers }>(`/universities/${id}`),
+}
+
 // ─── Careers ─────────────────────────────────────────────────────────────────
 
 export const careerApi = {
-  list: () => request<{ data: CareerSummary[] }>('/careers'),
+  list: (universityId?: string) =>
+    request<{ data: CareerSummary[] }>(`/careers${universityId ? `?universityId=${universityId}` : ''}`),
   get: (id: string) => request<{ data: CareerWithSubjects }>(`/careers/${id}`),
 }
 
@@ -84,10 +92,28 @@ export interface User {
   } | null
 }
 
+export interface UniversitySummary {
+  id: string
+  name: string
+  shortName: string
+  country: string
+  logoUrl: string | null
+  _count: { careers: number }
+}
+
+export interface UniversityWithCareers extends Omit<UniversitySummary, '_count'> {
+  careers: Array<{
+    id: string
+    name: string
+    totalCredits: number
+    durationSemesters: number
+  }>
+}
+
 export interface CareerSummary {
   id: string
   name: string
-  university: string
+  university: { id: string; name: string; shortName: string; logoUrl: string | null }
   totalCredits: number
   durationSemesters: number
 }

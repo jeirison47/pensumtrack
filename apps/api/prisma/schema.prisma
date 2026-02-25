@@ -22,17 +22,30 @@ model User {
   settings StudentProfile?
 }
 
-model Career {
-  id                 String    @id @default(cuid())
-  name               String
-  university         String
-  totalCredits       Int
-  durationSemesters  Int
-  isActive           Boolean   @default(true)
-  createdAt          DateTime  @default(now())
+model University {
+  id        String   @id @default(cuid())
+  name      String
+  shortName String   // Ej: ITLA, UASD, PUCMM
+  country   String   @default("DO")
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
-  subjects Subject[]
-  profiles StudentProfile[]
+  careers Career[]
+}
+
+model Career {
+  id                String    @id @default(cuid())
+  name              String
+  universityId      String
+  totalCredits      Int
+  durationSemesters Int
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+
+  university University       @relation(fields: [universityId], references: [id])
+  subjects   Subject[]
+  profiles   StudentProfile[]
 }
 
 model Subject {

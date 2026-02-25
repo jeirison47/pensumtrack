@@ -5,13 +5,26 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
+  // Universidad
+  const university = await prisma.university.upsert({
+    where: { id: 'university-itla' },
+    update: {},
+    create: {
+      id: 'university-itla',
+      name: 'Instituto Tecnológico de Las Américas',
+      shortName: 'ITLA',
+      country: 'DO',
+    },
+  })
+  console.log(`✓ Universidad: ${university.shortName}`)
+
   const career = await prisma.career.upsert({
     where: { id: 'itla-sonido' },
     update: {},
     create: {
       id: 'itla-sonido',
       name: 'Tecnólogo en Sonido',
-      university: 'ITLA',
+      universityId: 'university-itla',
       totalCredits: 146,
       durationSemesters: 7,
       subjects: {

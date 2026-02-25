@@ -61,7 +61,7 @@ export default function DashboardPage() {
           Hola, {user?.displayName?.split(' ')[0]} 👋
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-          {profile.career.name} · {profile.career.university}
+          {profile.career.name} · {profile.career.university?.shortName ?? ''}
         </p>
       </div>
 
