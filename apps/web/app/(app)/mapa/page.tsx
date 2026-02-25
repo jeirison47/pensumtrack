@@ -2,9 +2,12 @@
 
 import { useState } from 'react'
 import { useProgress } from '@/hooks/useProgress'
+import { useProgressStore } from '@/store/useProgressStore'
+import { progressApi } from '@/services/api'
 import { PensumMap } from '@/components/mapa/PensumMap'
 import { SubjectModal } from '@/components/layout/SubjectModal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
+import type { SubjectStatusDB } from '@/services/api'
 
 const LEGEND: { status: SubjectStatus; label: string; color: string }[] = [
   { status: 'passed',        label: 'Aprobada',       color: '#6ee7b7' },
@@ -16,6 +19,7 @@ const LEGEND: { status: SubjectStatus; label: string; color: string }[] = [
 
 export default function MapaPage() {
   const { profile, isLoading, getSubjectStatus, preselectedCodes } = useProgress()
+  const { updateSubjectLocally } = useProgressStore()
   const [selected, setSelected] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
 
@@ -24,6 +28,11 @@ export default function MapaPage() {
   const openModal = (s: Subject) => {
     setSelected(s)
     setSelectedStatus(getSubjectStatus(s.code))
+  }
+
+  const handleChangeStatus = async (code: string, next: SubjectStatusDB) => {
+    updateSubjectLocally(code, next)
+    await progressApi.updateSubject(code, next)
   }
 
   if (isLoading) return (
@@ -67,6 +76,7 @@ export default function MapaPage() {
         getSubjectStatus={getSubjectStatus}
         preselectedCodes={preselectedCodes}
         onClose={() => setSelected(null)}
+        onChangeStatus={handleChangeStatus}
       />
     </>
   )
