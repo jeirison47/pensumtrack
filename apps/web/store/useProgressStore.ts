@@ -1,0 +1,36 @@
+import { create } from 'zustand'
+import type { StudentProfileFull, SubjectStatusDB } from '@/services/api'
+
+interface ProgressState {
+  profile: StudentProfileFull | null
+  setProfile: (profile: StudentProfileFull | null) => void
+  updateSubjectLocally: (subjectCode: string, status: SubjectStatusDB) => void
+  updatePreselectionLocally: (period: string, subjectCodes: string[]) => void
+}
+
+export const useProgressStore = create<ProgressState>((set) => ({
+  profile: null,
+
+  setProfile: (profile) => set({ profile }),
+
+  updateSubjectLocally: (subjectCode, status) =>
+    set((state) => {
+      if (!state.profile) return state
+      const exists = state.profile.subjects.find((s) => s.subjectCode === subjectCode)
+      const updated = exists
+        ? state.profile.subjects.map((s) => s.subjectCode === subjectCode ? { ...s, status } : s)
+        : [...state.profile.subjects, { id: '', subjectCode, status, grade: null, period: null }]
+      return { profile: { ...state.profile, subjects: updated } }
+    }),
+
+  updatePreselectionLocally: (period, subjectCodes) =>
+    set((state) => {
+      if (!state.profile) return state
+      return {
+        profile: {
+          ...state.profile,
+          preselection: { id: '', period, subjects: subjectCodes },
+        },
+      }
+    }),
+}))

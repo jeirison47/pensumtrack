@@ -16,7 +16,7 @@ export interface Subject {
   semester: number      // Cuatrimestre en el pensum (1–N)
   prerequisites: string[]
   corequisites: string[]
-  area?: string
+  area?: string | null
 }
 
 // ─── Student progress types ──────────────────────────────────────────────────

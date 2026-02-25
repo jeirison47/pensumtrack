@@ -47,6 +47,31 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ─── PensumTrack design tokens ─────────────────────────────── */
+:root {
+  --bg:       #0b0d12;
+  --surface:  #13161e;
+  --surface2: #1a1e28;
+  --pt-border: #242834;
+  --accent:   #6ee7b7;
+  --accent2:  #38bdf8;
+  --warn:     #fbbf24;
+  --danger:   #f87171;
+  --purple:   #a78bfa;
+  --text:     #e8eaf0;
+  --muted:    #6b7280;
+}
+
+html {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--pt-border); border-radius: 4px; }
+/* ───────────────────────────────────────────────────────────── */
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

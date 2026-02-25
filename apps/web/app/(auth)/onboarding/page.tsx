@@ -1,0 +1,116 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import { careerApi, progressApi } from '@/services/api'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useProgressStore } from '@/store/useProgressStore'
+import { GraduationCap, ChevronRight } from 'lucide-react'
+
+export default function OnboardingPage() {
+  const router = useRouter()
+  const { isAuthenticated } = useAuthStore()
+  const { setProfile } = useProgressStore()
+  const [selectedCareer, setSelectedCareer] = useState<string | null>(null)
+  const [semester, setSemester] = useState(1)
+  const [loading, setLoading] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['careers'],
+    queryFn: () => careerApi.list(),
+    enabled: isAuthenticated,
+  })
+
+  const careers = data?.data ?? []
+
+  const handleStart = async () => {
+    if (!selectedCareer) return
+    setLoading(true)
+    try {
+      const res = await progressApi.upsertProfile(selectedCareer, semester)
+      setProfile(res.data)
+      router.replace('/dashboard')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-dvh flex flex-col px-4 py-10 max-w-lg mx-auto"
+         style={{ backgroundColor: 'var(--bg)' }}>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+          Selecciona tu carrera
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          Elige la carrera que estás cursando para comenzar.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+               style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 mb-8">
+          {careers.map((career) => (
+            <button key={career.id} onClick={() => setSelectedCareer(career.id)}
+                    className="flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
+                    style={{
+                      background: selectedCareer === career.id ? 'rgba(110,231,183,0.1)' : 'var(--surface)',
+                      border: `1px solid ${selectedCareer === career.id ? 'var(--accent)' : 'var(--pt-border)'}`,
+                    }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: selectedCareer === career.id ? 'var(--accent)' : 'var(--surface2)' }}>
+                <GraduationCap size={20}
+                               style={{ color: selectedCareer === career.id ? '#0b0d12' : 'var(--muted)' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{career.name}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                  {career.university} · {career.totalCredits} créditos · {career.durationSemesters} cuatrimestres
+                </p>
+              </div>
+              {selectedCareer === career.id && (
+                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'var(--accent)' }}>
+                  <span style={{ color: '#0b0d12', fontSize: 12 }}>✓</span>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selectedCareer && (
+        <div className="mb-8 p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <label className="text-sm font-medium block mb-3" style={{ color: 'var(--text)' }}>
+            ¿En qué cuatrimestre estás actualmente?
+          </label>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSemester(Math.max(1, semester - 1))}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
+                    style={{ background: 'var(--surface2)', color: 'var(--text)' }}>−</button>
+            <span className="text-2xl font-bold flex-1 text-center" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
+              C{semester}
+            </span>
+            <button onClick={() => setSemester(Math.min(7, semester + 1))}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
+                    style={{ background: 'var(--surface2)', color: 'var(--text)' }}>+</button>
+          </div>
+        </div>
+      )}
+
+      <button onClick={handleStart} disabled={!selectedCareer || loading}
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-semibold transition-opacity disabled:opacity-40"
+              style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+        {loading ? 'Iniciando...' : 'Comenzar'}
+        {!loading && <ChevronRight size={18} />}
+      </button>
+    </div>
+  )
+}
