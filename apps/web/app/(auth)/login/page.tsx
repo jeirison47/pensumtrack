@@ -33,9 +33,12 @@ export default function LoginPage() {
     <div className="min-h-dvh flex items-center justify-center px-4"
          style={{ backgroundColor: 'var(--bg)' }}>
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold mb-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
-          PensumTrack
-        </h1>
+        <div className="flex items-center gap-3 mb-2">
+          <img src="/logo.png" alt="PensumTrack" className="w-10 h-10 object-contain" />
+          <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
+            PensumTrack
+          </h1>
+        </div>
         <p className="text-sm mb-8" style={{ color: 'var(--muted)' }}>Gestiona el progreso de tu carrera</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

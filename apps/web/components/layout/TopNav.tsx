@@ -20,8 +20,11 @@ export function TopNav() {
   return (
     <header className="hidden md:flex items-center justify-between px-8 py-4 sticky top-0 z-50"
             style={{ background: 'var(--surface)', borderBottom: '1px solid var(--pt-border)' }}>
-      <Link href="/dashboard" className="font-bold text-lg" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
-        PensumTrack
+      <Link href="/dashboard" className="flex items-center gap-2">
+        <img src="/logo.png" alt="PensumTrack" className="w-7 h-7 object-contain" />
+        <span className="font-bold text-lg" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
+          PensumTrack
+        </span>
       </Link>
 
       <nav className="flex items-center gap-1">

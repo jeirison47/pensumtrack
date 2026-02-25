@@ -5,6 +5,10 @@ import { Providers } from './providers'
 export const metadata: Metadata = {
   title: 'PensumTrack',
   description: 'Gestiona el progreso de tu carrera universitaria',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
