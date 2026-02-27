@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { universityApi, careerApi, progressApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -10,8 +10,11 @@ import { GraduationCap, Building2, ChevronRight, ChevronLeft } from 'lucide-reac
 
 type Step = 'university' | 'career'
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isAddMode = searchParams.get('mode') === 'add'
+
   const queryClient = useQueryClient()
   const { isAuthenticated } = useAuthStore()
   const { setProfile } = useProgressStore()
@@ -21,6 +24,7 @@ export default function OnboardingPage() {
   const [selectedCareer, setSelectedCareer] = useState<string | null>(null)
   const [semester, setSemester] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const { data: uniData, isLoading: uniLoading } = useQuery({
     queryKey: ['universities'],
@@ -46,19 +50,26 @@ export default function OnboardingPage() {
   const handleBack = () => {
     setStep('university')
     setSelectedCareer(null)
+    setError('')
   }
 
   const handleStart = async () => {
     if (!selectedCareer) return
     setLoading(true)
+    setError('')
     try {
-      const res = await progressApi.upsertProfile(selectedCareer, semester)
-      setProfile(res.data)
-      // Actualizar el caché para que el dashboard no sirva un null obsoleto
-      queryClient.setQueryData(['progress'], { data: res.data })
-      router.replace('/dashboard')
-    } catch (err) {
-      console.error(err)
+      const res = await progressApi.addCareer(selectedCareer, semester)
+      // Si es la primera carrera (modo inicial), actualizar perfil activo en store
+      if (!isAddMode) {
+        setProfile(res.data)
+        queryClient.setQueryData(['progress'], { data: res.data })
+      } else {
+        // En modo add, solo invalidar la lista de perfiles
+        queryClient.invalidateQueries({ queryKey: ['profiles'] })
+      }
+      router.replace(isAddMode ? '/perfil' : '/dashboard')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al agregar la carrera')
     } finally {
       setLoading(false)
     }
@@ -81,6 +92,15 @@ export default function OnboardingPage() {
           </button>
         )}
 
+        {isAddMode && step === 'university' && (
+          <button onClick={() => router.back()}
+                  className="flex items-center gap-1 text-sm mb-4 transition-opacity hover:opacity-70"
+                  style={{ color: 'var(--muted)' }}>
+            <ChevronLeft size={16} />
+            Volver al perfil
+          </button>
+        )}
+
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-medium px-2 py-0.5 rounded-full"
                 style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
@@ -90,7 +110,9 @@ export default function OnboardingPage() {
 
         <h1 className="text-3xl font-bold mb-2"
             style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-          {step === 'university' ? 'Selecciona tu universidad' : 'Selecciona tu carrera'}
+          {step === 'university'
+            ? isAddMode ? 'Agregar carrera' : 'Selecciona tu universidad'
+            : 'Selecciona tu carrera'}
         </h1>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
           {step === 'university'
@@ -111,10 +133,7 @@ export default function OnboardingPage() {
             {universities.map((uni) => (
               <button key={uni.id} onClick={() => handleSelectUniversity(uni.id)}
                       className="flex items-center gap-4 p-4 rounded-2xl text-left transition-all"
-                      style={{
-                        background: 'var(--surface)',
-                        border: '1px solid var(--pt-border)',
-                      }}>
+                      style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                      style={{ background: 'var(--surface2)' }}>
                   {uni.logoUrl
@@ -194,14 +213,31 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          {error && (
+            <p className="text-sm mb-4 text-center" style={{ color: 'var(--error, #f87171)' }}>{error}</p>
+          )}
+
           <button onClick={handleStart} disabled={!selectedCareer || loading}
                   className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-semibold transition-opacity disabled:opacity-40"
                   style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-            {loading ? 'Iniciando...' : 'Comenzar'}
+            {loading ? (isAddMode ? 'Agregando...' : 'Iniciando...') : (isAddMode ? 'Agregar carrera' : 'Comenzar')}
             {!loading && <ChevronRight size={18} />}
           </button>
         </>
       )}
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-dvh flex items-center justify-center" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="w-8 h-8 border-2 rounded-full animate-spin"
+             style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   )
 }

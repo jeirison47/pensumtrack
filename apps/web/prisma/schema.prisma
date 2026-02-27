@@ -21,7 +21,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  settings StudentProfile?
+  profiles StudentProfile[]
 }
 
 model University {
@@ -67,9 +67,10 @@ model Subject {
 
 model StudentProfile {
   id              String   @id @default(cuid())
-  userId          String   @unique
+  userId          String
   careerId        String
   currentSemester Int      @default(1)
+  isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -77,6 +78,8 @@ model StudentProfile {
   career        Career           @relation(fields: [careerId], references: [id])
   subjects      StudentSubject[]
   preselections Preselection[]
+
+  @@unique([userId, careerId])
 }
 
 model StudentSubject {

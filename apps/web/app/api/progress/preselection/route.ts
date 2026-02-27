@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest) {
 
   const { period, subjectCodes } = result.data
 
-  const profile = await prisma.studentProfile.findUnique({ where: { userId } })
+  const profile = await prisma.studentProfile.findFirst({ where: { userId, isActive: true } })
   if (!profile) return NextResponse.json({ error: 'Perfil no encontrado. Selecciona una carrera primero.' }, { status: 404 })
 
   if (subjectCodes.length === 0) {

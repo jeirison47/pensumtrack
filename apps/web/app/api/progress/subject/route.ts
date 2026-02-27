@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
 
   const { subjectCode, status, grade, period } = result.data
 
-  const profile = await prisma.studentProfile.findUnique({ where: { userId } })
+  const profile = await prisma.studentProfile.findFirst({ where: { userId, isActive: true } })
   if (!profile) return NextResponse.json({ error: 'Perfil no encontrado. Selecciona una carrera primero.' }, { status: 404 })
 
   const subject = await prisma.subject.findUnique({ where: { code: subjectCode } })

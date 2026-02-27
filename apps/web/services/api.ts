@@ -58,10 +58,17 @@ export const careerApi = {
 export const progressApi = {
   me: () => request<{ data: StudentProfileFull | null }>('/progress/me'),
 
-  upsertProfile: (careerId: string, currentSemester: number) =>
+  profiles: () => request<{ data: ProfileSummary[] }>('/progress/profiles'),
+
+  addCareer: (careerId: string, currentSemester: number) =>
     request<{ data: StudentProfileFull }>('/progress/profile', {
       method: 'POST',
       body: JSON.stringify({ careerId, currentSemester }),
+    }),
+
+  switchCareer: (profileId: string) =>
+    request<{ data: { id: string; isActive: boolean } }>(`/progress/profiles/${profileId}/active`, {
+      method: 'PUT',
     }),
 
   updateSubject: (subjectCode: string, status: SubjectStatusDB, grade?: number, period?: string) =>
@@ -74,6 +81,16 @@ export const progressApi = {
     request<{ data: { period: string; subjects: string[] } }>('/progress/preselection', {
       method: 'PUT',
       body: JSON.stringify({ period, subjectCodes }),
+    }),
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+export const userApi = {
+  updateProfile: (data: { displayName?: string; currentPassword?: string; newPassword?: string }) =>
+    request<{ data: User }>('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     }),
 }
 
@@ -146,6 +163,20 @@ export interface PreselectionDB {
   id: string
   period: string
   subjects: string[]
+}
+
+export interface ProfileSummary {
+  id: string
+  careerId: string
+  currentSemester: number
+  isActive: boolean
+  career: {
+    id: string
+    name: string
+    totalCredits: number
+    durationSemesters: number
+    university: { name: string; shortName: string; logoUrl: string | null }
+  }
 }
 
 export interface StudentProfileFull {

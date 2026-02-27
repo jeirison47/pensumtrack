@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     where: { id: userId },
     select: {
       id: true, email: true, displayName: true, isAdmin: true, createdAt: true,
-      settings: { select: { id: true, careerId: true, currentSemester: true } },
+      profiles: { where: { isActive: true }, select: { id: true, careerId: true, currentSemester: true }, take: 1 },
     },
   })
 

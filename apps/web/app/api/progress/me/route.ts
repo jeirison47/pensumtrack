@@ -6,8 +6,8 @@ export async function GET(request: NextRequest) {
   const userId = getUserId(request)
   if (!userId) return unauthorized()
 
-  const profile = await prisma.studentProfile.findUnique({
-    where: { userId },
+  const profile = await prisma.studentProfile.findFirst({
+    where: { userId, isActive: true },
     include: {
       career: { include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } } },
       subjects: true,
