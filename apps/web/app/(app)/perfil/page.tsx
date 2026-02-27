@@ -30,6 +30,7 @@ export default function PerfilPage() {
 
   // ─── Carreras ──────────────────────────────────────────────────────────────
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+  const [confirmSwitchId, setConfirmSwitchId] = useState<string | null>(null)
 
   // ─── Logout ────────────────────────────────────────────────────────────────
   const [confirmLogout, setConfirmLogout] = useState(false)
@@ -80,10 +81,12 @@ export default function PerfilPage() {
   }
 
   // ─── Handler switch carrera ────────────────────────────────────────────────
-  const handleSwitchCareer = async (profileId: string) => {
-    setSwitchingId(profileId)
+  const handleSwitchCareer = async () => {
+    if (!confirmSwitchId) return
+    setSwitchingId(confirmSwitchId)
+    setConfirmSwitchId(null)
     try {
-      await progressApi.switchCareer(profileId)
+      await progressApi.switchCareer(confirmSwitchId)
       queryClient.invalidateQueries({ queryKey: ['profiles'] })
       queryClient.invalidateQueries({ queryKey: ['progress'] })
     } catch (err) {
@@ -261,11 +264,11 @@ export default function PerfilPage() {
                   </div>
                   {!profile.isActive && (
                     <button
-                      onClick={() => handleSwitchCareer(profile.id)}
+                      onClick={() => setConfirmSwitchId(profile.id)}
                       disabled={switchingId === profile.id}
                       className="text-xs px-3 py-1.5 rounded-xl font-medium flex-shrink-0 disabled:opacity-40"
                       style={{ background: 'var(--surface2)', color: 'var(--text)' }}>
-                      {switchingId === profile.id ? '...' : 'Activar'}
+                      {switchingId === profile.id ? '...' : 'Seleccionar'}
                     </button>
                   )}
                   {profile.isActive && (
@@ -288,6 +291,44 @@ export default function PerfilPage() {
         <LogOut size={16} />
         Cerrar sesión
       </button>
+
+      {/* Modal confirmación cambio de carrera */}
+      {confirmSwitchId && (() => {
+        const p = profiles.find((x) => x.id === confirmSwitchId)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+               style={{ background: 'rgba(0,0,0,0.6)' }}
+               onClick={() => setConfirmSwitchId(null)}>
+            <div className="w-full max-w-sm p-6 rounded-2xl"
+                 style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
+                 onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl mx-auto mb-4"
+                   style={{ background: 'rgba(110,231,183,0.12)' }}>
+                <GraduationCap size={22} style={{ color: 'var(--accent)' }} />
+              </div>
+              <h3 className="text-base font-bold text-center mb-1"
+                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+                Cambiar carrera activa
+              </h3>
+              <p className="text-sm text-center mb-6" style={{ color: 'var(--muted)' }}>
+                ¿Deseas seleccionar <span className="font-semibold" style={{ color: 'var(--text)' }}>{p?.career.name}</span> como tu carrera activa?
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmSwitchId(null)}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                        style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                  Cancelar
+                </button>
+                <button onClick={handleSwitchCareer}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                        style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                  Seleccionar
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Modal confirmación logout */}
       {confirmLogout && (

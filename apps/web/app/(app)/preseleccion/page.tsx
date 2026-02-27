@@ -532,33 +532,31 @@ export default function PreseleccionPage() {
                   style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
                 />
               </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-                    Inicio (mes/año)
-                  </label>
-                  <input
-                    type="month"
-                    value={createStart}
-                    onChange={(e) => setCreateStart(e.target.value)}
-                    required
-                    className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-                    style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-                    Fin (mes/año)
-                  </label>
-                  <input
-                    type="month"
-                    value={createEnd}
-                    onChange={(e) => setCreateEnd(e.target.value)}
-                    required
-                    className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-                    style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
+                  Inicio (mes/año)
+                </label>
+                <input
+                  type="month"
+                  value={createStart}
+                  onChange={(e) => setCreateStart(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+                  style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
+                  Fin (mes/año)
+                </label>
+                <input
+                  type="month"
+                  value={createEnd}
+                  onChange={(e) => setCreateEnd(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+                  style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
+                />
               </div>
               {createError && <p className="text-xs" style={{ color: '#f87171' }}>{createError}</p>}
               <button type="submit" disabled={creating}
