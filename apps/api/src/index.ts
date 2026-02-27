@@ -1,41 +1,5 @@
 import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-
-const app = new Hono()
-
-// CORS
-app.use('*', cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL ?? '',
-  ].filter(Boolean),
-  credentials: true,
-}))
-
-// Health check
-app.get('/health', (c) => c.json({ status: 'ok' }))
-
-// Routes
-import { authRoutes } from './routes/auth.routes.js'
-import { careerRoutes } from './routes/career.routes.js'
-import { progressRoutes } from './routes/progress.routes.js'
-import { universityRoutes } from './routes/university.routes.js'
-
-app.route('/api/auth', authRoutes)
-app.route('/api/universities', universityRoutes)
-app.route('/api/careers', careerRoutes)
-app.route('/api/progress', progressRoutes)
-
-// 404
-app.notFound((c) => c.json({ error: 'Not found' }, 404))
-
-// Error handler
-app.onError((err, c) => {
-  console.error(err)
-  return c.json({ error: 'Internal server error' }, 500)
-})
+import app from './app.js'
 
 const port = Number(process.env.PORT) || 4000
 
