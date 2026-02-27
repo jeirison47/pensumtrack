@@ -77,10 +77,32 @@ export const progressApi = {
       body: JSON.stringify({ subjectCode, status, grade, period }),
     }),
 
-  updatePreselection: (period: string, subjectCodes: string[]) =>
-    request<{ data: { period: string; subjects: string[] } }>('/progress/preselection', {
+  createPeriod: (label: string, startDate: string, endDate: string) =>
+    request<{ data: PreselectionDB }>('/progress/preselections', {
+      method: 'POST',
+      body: JSON.stringify({ label, startDate, endDate }),
+    }),
+
+  updatePeriodSubjects: (id: string, subjectCodes: string[]) =>
+    request<{ data: PreselectionDB }>(`/progress/preselections/${id}/subjects`, {
       method: 'PUT',
-      body: JSON.stringify({ period, subjectCodes }),
+      body: JSON.stringify({ subjectCodes }),
+    }),
+
+  confirmPeriod: (id: string) =>
+    request<{ data: PreselectionDB }>(`/progress/preselections/${id}/confirm`, {
+      method: 'PUT',
+    }),
+
+  closePeriod: (id: string, results: { subjectCode: string; status: 'PASSED' | 'FAILED'; grade?: number }[]) =>
+    request<{ data: PreselectionDB }>(`/progress/preselections/${id}/close`, {
+      method: 'PUT',
+      body: JSON.stringify({ results }),
+    }),
+
+  deletePeriod: (id: string) =>
+    request<{ data: { id: string } }>(`/progress/preselections/${id}`, {
+      method: 'DELETE',
     }),
 }
 
@@ -159,10 +181,16 @@ export interface StudentSubjectDB {
   period: string | null
 }
 
+export type PreselectionStatus = 'OPEN' | 'CONFIRMED' | 'CLOSED'
+
 export interface PreselectionDB {
   id: string
-  period: string
+  label: string
+  startDate: string
+  endDate: string
+  status: PreselectionStatus
   subjects: string[]
+  createdAt: string
 }
 
 export interface ProfileSummary {

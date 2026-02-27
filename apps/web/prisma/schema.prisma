@@ -51,7 +51,7 @@ model Career {
 }
 
 model Subject {
-  code          String   @id
+  code          String
   name          String
   credits       Int
   semester      Int
@@ -63,6 +63,8 @@ model Subject {
 
   career          Career           @relation(fields: [careerId], references: [id])
   studentSubjects StudentSubject[]
+
+  @@id([code, careerId])
 }
 
 model StudentProfile {
@@ -86,27 +88,38 @@ model StudentSubject {
   id          String        @id @default(cuid())
   profileId   String
   subjectCode String
+  careerId    String
   status      SubjectStatus @default(PENDING)
   grade       Float?
   period      String?
   updatedAt   DateTime      @updatedAt
 
-  subject Subject        @relation(fields: [subjectCode], references: [code])
+  subject Subject        @relation(fields: [subjectCode, careerId], references: [code, careerId])
   profile StudentProfile @relation(fields: [profileId], references: [id])
 
   @@unique([profileId, subjectCode])
 }
 
 model Preselection {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   profileId String
-  period    String
+  label     String             @default("")
+  startDate DateTime?
+  endDate   DateTime?
+  status    PreselectionStatus @default(OPEN)
   subjects  String[]
-  updatedAt DateTime @updatedAt
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   profile StudentProfile @relation(fields: [profileId], references: [id])
 
-  @@unique([profileId, period])
+  @@unique([profileId, label])
+}
+
+enum PreselectionStatus {
+  OPEN
+  CONFIRMED
+  CLOSED
 }
 
 enum SubjectStatus {

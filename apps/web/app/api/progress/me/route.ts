@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     include: {
       career: { include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } } },
       subjects: true,
-      preselections: { orderBy: { period: 'asc' } },
+      preselections: { orderBy: { createdAt: 'asc' } },
     },
   })
 

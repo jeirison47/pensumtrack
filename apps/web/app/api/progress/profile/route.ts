@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       include: {
         career: { include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } } },
         subjects: true,
-        preselections: { orderBy: { period: 'asc' } },
+        preselections: { orderBy: { createdAt: 'asc' } },
       },
     })
 

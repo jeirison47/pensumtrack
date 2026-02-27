@@ -1,11 +1,14 @@
 import { create } from 'zustand'
-import type { StudentProfileFull, SubjectStatusDB } from '@/services/api'
+import type { StudentProfileFull, SubjectStatusDB, PreselectionDB } from '@/services/api'
 
 interface ProgressState {
   profile: StudentProfileFull | null
   setProfile: (profile: StudentProfileFull | null) => void
   updateSubjectLocally: (subjectCode: string, status: SubjectStatusDB) => void
-  updatePreselectionLocally: (period: string, subjectCodes: string[]) => void
+  updatePreselectionSubjectsLocally: (id: string, subjectCodes: string[]) => void
+  addPreselectionLocally: (preselection: PreselectionDB) => void
+  removePreselectionLocally: (id: string, revertSubjects?: string[]) => void
+  updatePreselectionStatusLocally: (id: string, status: PreselectionDB['status']) => void
 }
 
 export const useProgressStore = create<ProgressState>((set) => ({
@@ -23,20 +26,42 @@ export const useProgressStore = create<ProgressState>((set) => ({
       return { profile: { ...state.profile, subjects: updated } }
     }),
 
-  updatePreselectionLocally: (period, subjectCodes) =>
+  updatePreselectionSubjectsLocally: (id, subjectCodes) =>
     set((state) => {
       if (!state.profile) return state
-      const exists = state.profile.preselections.find((p) => p.period === period)
-      let preselections
-      if (subjectCodes.length === 0) {
-        preselections = state.profile.preselections.filter((p) => p.period !== period)
-      } else if (exists) {
-        preselections = state.profile.preselections.map((p) =>
-          p.period === period ? { ...p, subjects: subjectCodes } : p
+      const preselections = state.profile.preselections.map((p) =>
+        p.id === id ? { ...p, subjects: subjectCodes } : p,
+      )
+      return { profile: { ...state.profile, preselections } }
+    }),
+
+  addPreselectionLocally: (preselection) =>
+    set((state) => {
+      if (!state.profile) return state
+      return { profile: { ...state.profile, preselections: [...state.profile.preselections, preselection] } }
+    }),
+
+  removePreselectionLocally: (id, revertSubjects) =>
+    set((state) => {
+      if (!state.profile) return state
+      const preselections = state.profile.preselections.filter((p) => p.id !== id)
+      let subjects = state.profile.subjects
+      if (revertSubjects?.length) {
+        subjects = subjects.map((s) =>
+          revertSubjects.includes(s.subjectCode) && s.status === 'IN_PROGRESS'
+            ? { ...s, status: 'PENDING' as SubjectStatusDB }
+            : s,
         )
-      } else {
-        preselections = [...state.profile.preselections, { id: '', period, subjects: subjectCodes }]
       }
+      return { profile: { ...state.profile, preselections, subjects } }
+    }),
+
+  updatePreselectionStatusLocally: (id, status) =>
+    set((state) => {
+      if (!state.profile) return state
+      const preselections = state.profile.preselections.map((p) =>
+        p.id === id ? { ...p, status } : p,
+      )
       return { profile: { ...state.profile, preselections } }
     }),
 }))
