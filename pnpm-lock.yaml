@@ -139,7 +139,11 @@ importers:
 
   packages/types: {}
 
-  packages/utils: {}
+  packages/utils:
+    dependencies:
+      '@pensumtrack/types':
+        specifier: workspace:*
+        version: link:../types
 
 packages:
 
