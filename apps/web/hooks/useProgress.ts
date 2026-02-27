@@ -10,7 +10,7 @@ import type { Subject, StudentSubject, SubjectStatus } from '@pensumtrack/types'
 
 export function useProgress() {
   const { isAuthenticated } = useAuthStore()
-  const { profile, setProfile } = useProgressStore()
+  const { profile: storeProfile, setProfile } = useProgressStore()
   const queryClient = useQueryClient()
 
   const { data, isLoading, refetch } = useQuery({
@@ -22,9 +22,14 @@ export function useProgress() {
   const invalidateProgress = () =>
     queryClient.invalidateQueries({ queryKey: ['progress'] })
 
+  // Sincroniza el store para componentes que lo leen directamente (actualizaciones optimistas)
   useEffect(() => {
     if (data?.data !== undefined) setProfile(data.data)
   }, [data, setProfile])
+
+  // Deriva profile de la query directamente para evitar el render intermedio donde
+  // isLoading=false pero el store aún no se actualizó (causaba redirect incorrecto a /onboarding)
+  const profile = data !== undefined ? data.data : storeProfile
 
   // Unión de todos los periodos para mostrar estado "preselected" en pensum/mapa
   const preselectedCodes = profile?.preselections.flatMap((p) => p.subjects) ?? []
