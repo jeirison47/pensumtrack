@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, UserCircle } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard',    label: 'Inicio',   icon: LayoutDashboard },
@@ -10,7 +10,7 @@ const nav = [
   { href: '/preseleccion', label: 'Presel.',  icon: CheckSquare },
   { href: '/mapa',         label: 'Mapa',     icon: GitBranch },
   { href: '/desbloqueo',   label: 'Desbloqueo', icon: Unlock },
-  { href: '/perfil',       label: 'Perfil',   icon: UserCircle },
+  { href: '/perfil',       label: 'Perfil',   icon: CircleUser },
 ]
 
 export function BottomNav() {
