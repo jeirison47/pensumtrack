@@ -14,8 +14,8 @@ const STATUS_COLORS: Record<SubjectStatus, { bg: string; border: string; text: s
   'in-progress': { bg: 'rgba(251,191,36,0.15)',  border: '#fbbf24', text: '#fbbf24' },
   available:     { bg: 'rgba(56,189,248,0.15)',   border: '#38bdf8', text: '#38bdf8' },
   preselected:   { bg: 'rgba(167,139,250,0.15)',  border: '#a78bfa', text: '#a78bfa' },
-  locked:        { bg: 'rgba(30,34,46,0.8)',       border: '#242834', text: '#6b7280' },
-  pending:       { bg: 'rgba(30,34,46,0.8)',       border: '#242834', text: '#6b7280' },
+  locked:        { bg: 'rgba(30,34,46,0.8)',       border: '#4b5563', text: '#6b7280' },
+  pending:       { bg: 'rgba(30,34,46,0.8)',       border: '#4b5563', text: '#6b7280' },
   failed:        { bg: 'rgba(248,113,113,0.15)',   border: '#f87171', text: '#f87171' },
 }
 
