@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
-import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard',    label: 'Inicio',      icon: LayoutDashboard },
@@ -45,12 +45,13 @@ export function TopNav() {
       </nav>
 
       <Link href="/perfil"
-            className="px-3 py-1.5 rounded-lg text-sm transition-colors hover:opacity-80"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
             style={{
               color: pathname === '/perfil' ? 'var(--accent)' : 'var(--muted)',
               background: pathname === '/perfil' ? 'rgba(110,231,183,0.08)' : 'transparent',
             }}>
-        {user?.displayName}
+        <CircleUser size={16} />
+        Perfil
       </Link>
     </header>
   )
