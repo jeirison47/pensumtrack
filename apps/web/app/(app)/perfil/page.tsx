@@ -31,6 +31,9 @@ export default function PerfilPage() {
   // ─── Carreras ──────────────────────────────────────────────────────────────
   const [switchingId, setSwitchingId] = useState<string | null>(null)
 
+  // ─── Logout ────────────────────────────────────────────────────────────────
+  const [confirmLogout, setConfirmLogout] = useState(false)
+
   const { data: profilesData, isLoading: profilesLoading } = useQuery({
     queryKey: ['profiles'],
     queryFn: () => progressApi.profiles(),
@@ -279,12 +282,32 @@ export default function PerfilPage() {
       </div>
 
       {/* Cerrar sesión */}
-      <button onClick={handleLogout}
-              className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium"
-              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
-        <LogOut size={16} />
-        Cerrar sesión
-      </button>
+      {confirmLogout ? (
+        <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <p className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+            ¿Seguro que quieres cerrar sesión?
+          </p>
+          <div className="flex gap-2">
+            <button onClick={handleLogout}
+                    className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                    style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+              Sí, cerrar sesión
+            </button>
+            <button onClick={() => setConfirmLogout(false)}
+                    className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                    style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setConfirmLogout(true)}
+                className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
+          <LogOut size={16} />
+          Cerrar sesión
+        </button>
+      )}
     </div>
   )
 }
