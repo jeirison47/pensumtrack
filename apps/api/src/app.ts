@@ -9,11 +9,13 @@ import { universityRoutes } from './routes/university.routes.js'
 const app = new Hono()
 
 app.use('*', cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL ?? '',
-  ].filter(Boolean),
+  origin: (origin) => {
+    if (!origin) return origin
+    if (origin.includes('localhost')) return origin
+    if (origin.endsWith('.vercel.app')) return origin
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return origin
+    return null
+  },
   credentials: true,
 }))
 
