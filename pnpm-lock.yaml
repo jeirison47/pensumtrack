@@ -78,18 +78,12 @@ importers:
       '@ducanh2912/next-pwa':
         specifier: ^10.2.9
         version: 10.2.9(next@16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(webpack@5.105.3)
-      '@neondatabase/serverless':
-        specifier: 0.10.4
-        version: 0.10.4
       '@pensumtrack/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@pensumtrack/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      '@prisma/adapter-neon':
-        specifier: 5.22.0
-        version: 5.22.0(@neondatabase/serverless@0.10.4)
       '@prisma/client':
         specifier: 5.22.0
         version: 5.22.0(prisma@5.22.0)
