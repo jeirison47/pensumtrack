@@ -2,6 +2,7 @@
   "framework": null,
   "buildCommand": "npx prisma generate",
   "installCommand": "pnpm install",
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ]
