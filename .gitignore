@@ -28,6 +28,7 @@ Thumbs.db
 # Prisma
 prisma/migrations/dev.db
 apps/api/src/generated
+apps/web/lib/generated
 
 # Vercel
 .vercel

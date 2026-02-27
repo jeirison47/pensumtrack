@@ -78,21 +78,36 @@ importers:
       '@ducanh2912/next-pwa':
         specifier: ^10.2.9
         version: 10.2.9(next@16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(webpack@5.105.3)
+      '@neondatabase/serverless':
+        specifier: 0.10.4
+        version: 0.10.4
       '@pensumtrack/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@pensumtrack/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@prisma/adapter-neon':
+        specifier: 5.22.0
+        version: 5.22.0(@neondatabase/serverless@0.10.4)
+      '@prisma/client':
+        specifier: 5.22.0
+        version: 5.22.0(prisma@5.22.0)
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.3)
+      bcrypt:
+        specifier: ^5.1.1
+        version: 5.1.1
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      jsonwebtoken:
+        specifier: ^9.0.3
+        version: 9.0.3
       lucide-react:
         specifier: ^0.575.0
         version: 0.575.0(react@19.2.3)
@@ -111,6 +126,9 @@ importers:
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
       zustand:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@19.2.14)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
@@ -118,6 +136,12 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.2.1
+      '@types/bcrypt':
+        specifier: ^5.0.2
+        version: 5.0.2
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/node':
         specifier: ^20
         version: 20.19.35
@@ -133,6 +157,9 @@ importers:
       eslint-config-next:
         specifier: 16.1.6
         version: 16.1.6(@typescript-eslint/parser@8.56.1(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
+      prisma:
+        specifier: 5.22.0
+        version: 5.22.0
       shadcn:
         specifier: ^3.8.5
         version: 3.8.5(@types/node@20.19.35)(typescript@5.9.3)
