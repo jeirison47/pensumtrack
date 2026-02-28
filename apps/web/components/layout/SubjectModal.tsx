@@ -256,15 +256,8 @@ export function SubjectModal({
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Mobile: bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden rounded-t-3xl p-6 max-h-[88dvh] overflow-y-auto"
-           style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-        <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'var(--pt-border)' }} />
-        {content}
-      </div>
-
-      {/* Desktop: modal centrado */}
-      <div className="fixed inset-0 z-50 hidden md:flex items-center justify-center p-6 pointer-events-none">
+      {/* Modal centrado (móvil y desktop) */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
         <div className="w-full max-w-md rounded-2xl p-6 pointer-events-auto overflow-y-auto max-h-[90dvh]"
              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
           {content}
