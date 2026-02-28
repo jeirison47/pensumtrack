@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { X, CheckCircle, XCircle, Lock, Clock, Star } from 'lucide-react'
+import { CheckCircle, XCircle, Lock, Clock, Star, X } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import type { SubjectStatusDB } from '@/services/api'
 
@@ -83,13 +83,6 @@ export function SubjectModal({
   subject, status, allSubjects, getSubjectStatus,
   preselectedCodes, onClose, onChangeStatus, onTogglePreselection,
 }: Props) {
-  useEffect(() => {
-    if (!subject) return
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [subject, onClose])
-
   if (!subject) return null
 
   const color = STATUS_COLORS[status]
@@ -253,16 +246,10 @@ export function SubjectModal({
   )
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal centrado (móvil y desktop) */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
-        <div className="w-full max-w-md rounded-2xl p-6 pointer-events-auto overflow-y-auto max-h-[90dvh]"
-             style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-          {content}
-        </div>
+    <Modal open={!!subject} onClose={onClose} maxWidth="max-w-md">
+      <div className="overflow-y-auto max-h-[80dvh]">
+        {content}
       </div>
-    </>
+    </Modal>
   )
 }

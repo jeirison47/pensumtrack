@@ -7,6 +7,11 @@ import { getUnlockedBySubject } from '@pensumtrack/utils'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import { Unlock, Lock, ChevronRight } from 'lucide-react'
 
+const STATUS_COLORS = {
+  available: { bg: 'rgba(56,189,248,0.15)',  border: '#38bdf8', text: '#38bdf8' },
+  locked:    { bg: 'rgba(75,85,99,0.15)',    border: '#4b5563', text: '#6b7280' },
+}
+
 export default function DesbloqueoPage() {
   const { profile, isLoading, getSubjectStatus, preselectedCodes } = useProgress()
   const [selected, setSelected] = useState<Subject | null>(null)
@@ -65,17 +70,17 @@ export default function DesbloqueoPage() {
               {available.map((s) => (
                 <button key={s.code} onClick={() => openModal(s)}
                         className="flex items-center justify-between p-3 rounded-xl text-left transition-all hover:opacity-80"
-                        style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                        style={{ background: STATUS_COLORS.available.bg, border: `1px solid ${STATUS_COLORS.available.border}` }}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{s.name}</p>
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>
                       {s.code} · {s.credits} cr. · C{s.semester}
                     </p>
                     {s.prerequisites.length === 0 && (
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--accent)' }}>Sin prerrequisitos</p>
+                      <p className="text-xs mt-0.5" style={{ color: STATUS_COLORS.available.text }}>Sin prerrequisitos</p>
                     )}
                   </div>
-                  <ChevronRight size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+                  <ChevronRight size={14} style={{ color: STATUS_COLORS.available.border, flexShrink: 0 }} />
                 </button>
               ))}
             </div>
@@ -100,7 +105,7 @@ export default function DesbloqueoPage() {
                 return (
                   <button key={s.code} onClick={() => openModal(s)}
                           className="flex items-start justify-between p-3 rounded-xl text-left transition-all hover:opacity-80"
-                          style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                          style={{ background: STATUS_COLORS.locked.bg, border: `1px solid ${STATUS_COLORS.locked.border}` }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s.name}</p>
                       <p className="text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
@@ -123,7 +128,7 @@ export default function DesbloqueoPage() {
                         </p>
                       )}
                     </div>
-                    <ChevronRight size={14} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: 2 }} />
+                    <ChevronRight size={14} style={{ color: STATUS_COLORS.locked.border, flexShrink: 0, marginTop: 2 }} />
                   </button>
                 )
               })}

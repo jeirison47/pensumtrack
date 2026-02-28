@@ -7,12 +7,22 @@ import { progressApi } from '@/services/api'
 import type { PreselectionDB } from '@/services/api'
 import { validatePreselection } from '@pensumtrack/utils'
 import { SubjectModal } from '@/components/layout/SubjectModal'
+import { Modal } from '@/components/ui/Modal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import {
-  AlertTriangle, CheckCircle, Plus, Trash2, X, ChevronDown, ChevronUp,
+  AlertTriangle, CheckCircle, Plus, Trash2, ChevronDown, ChevronUp,
 } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const STATUS_COLORS = {
+  passed:        { bg: 'rgba(110,231,183,0.15)', border: '#6ee7b7', text: '#6ee7b7' },
+  'in-progress': { bg: 'rgba(251,191,36,0.15)',  border: '#fbbf24', text: '#fbbf24' },
+  available:     { bg: 'rgba(56,189,248,0.15)',   border: '#38bdf8', text: '#38bdf8' },
+  preselected:   { bg: 'rgba(167,139,250,0.15)',  border: '#a78bfa', text: '#a78bfa' },
+  locked:        { bg: 'rgba(75,85,99,0.15)',     border: '#4b5563', text: '#6b7280' },
+  failed:        { bg: 'rgba(248,113,113,0.15)',  border: '#f87171', text: '#f87171' },
+}
 
 function statusBadge(status: PreselectionDB['status']) {
   if (status === 'OPEN')      return { label: 'Abierto',    bg: 'rgba(110,231,183,0.12)',  color: 'var(--accent)' }
@@ -349,20 +359,21 @@ export default function PreseleccionPage() {
                             const st = getSubjectStatus(code)
                             return st === 'passed' || st === 'in-progress'
                           })
+                          const colors = STATUS_COLORS[isSelected ? 'preselected' : 'available']
                           return (
                             <div key={s.code}
                                  className="flex items-center gap-3 p-3 rounded-xl transition-all"
                                  style={{
-                                   background: isSelected ? 'rgba(167,139,250,0.1)' : 'var(--surface)',
-                                   border: `1px solid ${isSelected ? 'var(--purple)' : 'var(--pt-border)'}`,
+                                   background: colors.bg,
+                                   border: `1px solid ${colors.border}`,
                                  }}>
                               <button onClick={() => handleToggle(s.code)}
                                       className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
                                       style={{
-                                        background: isSelected ? 'var(--purple)' : 'var(--surface2)',
-                                        border: `1px solid ${isSelected ? 'var(--purple)' : 'var(--pt-border)'}`,
+                                        background: isSelected ? colors.border : 'var(--surface2)',
+                                        border: `1px solid ${isSelected ? colors.border : 'var(--pt-border)'}`,
                                       }}>
-                                {isSelected && <span style={{ color: '#fff', fontSize: 12 }}>✓</span>}
+                                {isSelected && <span style={{ color: '#0b0d12', fontSize: 12 }}>✓</span>}
                               </button>
                               <button className="flex-1 text-left" onClick={() => { setSelectedSubject(s); setSelectedStatus(getSubjectStatus(s.code)) }}>
                                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s.name}</p>
@@ -370,7 +381,7 @@ export default function PreseleccionPage() {
                               </button>
                               <span className="flex-shrink-0">
                                 {prereqsMet
-                                  ? <CheckCircle size={16} style={{ color: 'var(--accent)' }} />
+                                  ? <CheckCircle size={16} style={{ color: '#6ee7b7' }} />
                                   : <AlertTriangle size={16} style={{ color: 'var(--warn)' }} />}
                               </span>
                             </div>
@@ -389,19 +400,20 @@ export default function PreseleccionPage() {
                         ) : (
                           current.subjects.map((code) => {
                             const s = allSubjects.find((x) => x.code === code)
+                            const c = STATUS_COLORS['in-progress']
                             return (
                               <div key={code} className="flex items-center gap-3 p-3 rounded-xl"
-                                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                                   style={{ background: c.bg, border: `1px solid ${c.border}` }}>
                                 <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                                     style={{ background: 'var(--purple)' }}>
-                                  <span style={{ color: '#fff', fontSize: 12 }}>✓</span>
+                                     style={{ background: c.border }}>
+                                  <span style={{ color: '#0b0d12', fontSize: 12 }}>✓</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s?.name ?? code}</p>
                                   <p className="text-xs" style={{ color: 'var(--muted)' }}>{code} · {s?.credits ?? '?'} créditos</p>
                                 </div>
                                 <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                      style={{ background: 'rgba(167,139,250,0.12)', color: 'var(--purple)' }}>
+                                      style={{ background: `${c.border}20`, color: c.text }}>
                                   En curso
                                 </span>
                               </div>
@@ -428,9 +440,10 @@ export default function PreseleccionPage() {
                           const s = allSubjects.find((x) => x.code === code)
                           const studentSubject = profile?.subjects.find((x) => x.subjectCode === code)
                           const passed = studentSubject?.status === 'PASSED'
+                          const c = passed ? STATUS_COLORS.passed : STATUS_COLORS.failed
                           return (
                             <div key={code} className="flex items-center gap-3 p-3 rounded-xl"
-                                 style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                                 style={{ background: c.bg, border: `1px solid ${c.border}` }}>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s?.name ?? code}</p>
                                 <p className="text-xs" style={{ color: 'var(--muted)' }}>{code} · {s?.credits ?? '?'} créditos</p>
@@ -442,10 +455,7 @@ export default function PreseleccionPage() {
                                   </span>
                                 )}
                                 <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                      style={{
-                                        background: passed ? 'rgba(110,231,183,0.12)' : 'rgba(248,113,113,0.12)',
-                                        color: passed ? 'var(--accent)' : '#f87171',
-                                      }}>
+                                      style={{ background: `${c.border}20`, color: c.text }}>
                                   {passed ? 'Aprobada' : 'Reprobada'}
                                 </span>
                               </div>
@@ -502,218 +512,173 @@ export default function PreseleccionPage() {
       )}
 
       {/* Modal: crear período */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-             style={{ background: 'rgba(0,0,0,0.6)' }}
-             onClick={() => setShowCreate(false)}>
-          <div className="w-full max-w-sm p-6 rounded-2xl"
-               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
-               onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-                Nuevo período
-              </h3>
-              <button onClick={() => setShowCreate(false)} style={{ color: 'var(--muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-                  Nombre del período
-                </label>
-                <input
-                  autoFocus
-                  placeholder="Ej. Ene–Jun 2026"
-                  value={createLabel}
-                  onChange={(e) => setCreateLabel(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-                  style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-                  Inicio (mes/año)
-                </label>
-                <input
-                  type="month"
-                  value={createStart}
-                  onChange={(e) => setCreateStart(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-                  style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-                  Fin (mes/año)
-                </label>
-                <input
-                  type="month"
-                  value={createEnd}
-                  onChange={(e) => setCreateEnd(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-                  style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-                />
-              </div>
-              {createError && <p className="text-xs" style={{ color: '#f87171' }}>{createError}</p>}
-              <button type="submit" disabled={creating}
-                      className="py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                      style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-                {creating ? 'Creando...' : 'Crear período'}
-              </button>
-            </form>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo período">
+        <form onSubmit={handleCreate} className="flex flex-col gap-3">
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
+              Nombre del período
+            </label>
+            <input
+              autoFocus
+              placeholder="Ej. Ene–Jun 2026"
+              value={createLabel}
+              onChange={(e) => setCreateLabel(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+              style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
+              Inicio (mes/año)
+            </label>
+            <input
+              type="month"
+              value={createStart}
+              onChange={(e) => setCreateStart(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+              style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
+              Fin (mes/año)
+            </label>
+            <input
+              type="month"
+              value={createEnd}
+              onChange={(e) => setCreateEnd(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
+              style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
+            />
+          </div>
+          {createError && <p className="text-xs" style={{ color: '#f87171' }}>{createError}</p>}
+          <button type="submit" disabled={creating}
+                  className="py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+            {creating ? 'Creando...' : 'Crear período'}
+          </button>
+        </form>
+      </Modal>
 
       {/* Modal: confirmar preselección */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-             style={{ background: 'rgba(0,0,0,0.6)' }}
-             onClick={() => setShowConfirmModal(false)}>
-          <div className="w-full max-w-sm p-6 rounded-2xl"
-               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
-               onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-2 text-center"
-                style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-              Confirmar preselección
-            </h3>
-            <p className="text-sm text-center mb-2" style={{ color: 'var(--muted)' }}>
-              Las materias seleccionadas pasarán a estado <strong>En curso</strong>.
-              Esta acción no se puede deshacer fácilmente.
-            </p>
-            <p className="text-sm text-center font-semibold mb-6" style={{ color: 'var(--text)' }}>
-              {currentSubjectCodes.length} materia{currentSubjectCodes.length !== 1 ? 's' : ''} · {totalCredits} créditos
-            </p>
-            {confirmError && <p className="text-xs mb-3 text-center" style={{ color: '#f87171' }}>{confirmError}</p>}
-            <div className="flex gap-3">
-              <button onClick={() => setShowConfirmModal(false)}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                      style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-                Cancelar
-              </button>
-              <button onClick={handleConfirm} disabled={confirming}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                      style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-                {confirming ? 'Confirmando...' : 'Confirmar'}
-              </button>
-            </div>
-          </div>
+      <Modal open={showConfirmModal} onClose={() => setShowConfirmModal(false)}>
+        <h3 className="font-bold text-base mb-2 text-center"
+            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+          Confirmar preselección
+        </h3>
+        <p className="text-sm text-center mb-2" style={{ color: 'var(--muted)' }}>
+          Las materias seleccionadas pasarán a estado <strong>En curso</strong>.
+          Esta acción no se puede deshacer fácilmente.
+        </p>
+        <p className="text-sm text-center font-semibold mb-6" style={{ color: 'var(--text)' }}>
+          {currentSubjectCodes.length} materia{currentSubjectCodes.length !== 1 ? 's' : ''} · {totalCredits} créditos
+        </p>
+        {confirmError && <p className="text-xs mb-3 text-center" style={{ color: '#f87171' }}>{confirmError}</p>}
+        <div className="flex gap-3">
+          <button onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+            Cancelar
+          </button>
+          <button onClick={handleConfirm} disabled={confirming}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+            {confirming ? 'Confirmando...' : 'Confirmar'}
+          </button>
         </div>
-      )}
+      </Modal>
 
       {/* Modal: eliminar período */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-             style={{ background: 'rgba(0,0,0,0.6)' }}
-             onClick={() => setDeleteTarget(null)}>
-          <div className="w-full max-w-sm p-6 rounded-2xl"
-               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
-               onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-2 text-center"
-                style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-              Eliminar período
-            </h3>
-            <p className="text-sm text-center mb-6" style={{ color: 'var(--muted)' }}>
-              {deleteTarget.status === 'CONFIRMED'
-                ? 'Las materias en curso de este período volverán a estado pendiente.'
-                : '¿Seguro que quieres eliminar este período?'}{' '}
-              Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                      style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-                Cancelar
-              </button>
-              <button onClick={handleDelete} disabled={deleting}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                      style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
-                {deleting ? 'Eliminando...' : 'Eliminar'}
-              </button>
-            </div>
-          </div>
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <h3 className="font-bold text-base mb-2 text-center"
+            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+          Eliminar período
+        </h3>
+        <p className="text-sm text-center mb-6" style={{ color: 'var(--muted)' }}>
+          {deleteTarget?.status === 'CONFIRMED'
+            ? 'Las materias en curso de este período volverán a estado pendiente.'
+            : '¿Seguro que quieres eliminar este período?'}{' '}
+          Esta acción no se puede deshacer.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => setDeleteTarget(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+            Cancelar
+          </button>
+          <button onClick={handleDelete} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                  style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+            {deleting ? 'Eliminando...' : 'Eliminar'}
+          </button>
         </div>
-      )}
+      </Modal>
 
-      {/* Panel: cerrar período (registrar resultados) */}
-      {showClosePanel && current?.status === 'CONFIRMED' && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
-             style={{ background: 'rgba(0,0,0,0.6)' }}
-             onClick={() => setShowClosePanel(false)}>
-          <div className="w-full max-w-lg p-6 rounded-t-2xl md:rounded-2xl max-h-[80vh] overflow-y-auto"
-               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
-               onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-                Registrar resultados — {current.label}
-              </h3>
-              <button onClick={() => setShowClosePanel(false)} style={{ color: 'var(--muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-3 mb-4">
-              {current.subjects.map((code) => {
-                const s = allSubjects.find((x) => x.code === code)
-                const r = closeResults[code] ?? { status: 'PASSED', grade: '' }
-                const passed = r.status === 'PASSED'
-                return (
-                  <div key={code} className="p-3 rounded-xl"
-                       style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
-                    <p className="text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
-                      {s?.name ?? code}
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--pt-border)' }}>
-                        <button
-                          onClick={() => setCloseResults((prev) => ({ ...prev, [code]: { ...r, status: 'PASSED' } }))}
-                          className="px-3 py-1.5 text-xs font-semibold transition-all"
-                          style={{
-                            background: passed ? 'rgba(110,231,183,0.2)' : 'transparent',
-                            color: passed ? 'var(--accent)' : 'var(--muted)',
-                          }}>
-                          Aprobada
-                        </button>
-                        <button
-                          onClick={() => setCloseResults((prev) => ({ ...prev, [code]: { ...r, status: 'FAILED' } }))}
-                          className="px-3 py-1.5 text-xs font-semibold transition-all"
-                          style={{
-                            background: !passed ? 'rgba(248,113,113,0.2)' : 'transparent',
-                            color: !passed ? '#f87171' : 'var(--muted)',
-                          }}>
-                          Reprobada
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        placeholder="Nota"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={r.grade}
-                        onChange={(e) => setCloseResults((prev) => ({ ...prev, [code]: { ...r, grade: e.target.value } }))}
-                        className="w-20 px-2 py-1.5 rounded-lg text-xs border outline-none"
-                        style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-                      />
-                    </div>
+      {/* Modal: cerrar período (registrar resultados) */}
+      <Modal
+        open={!!(showClosePanel && current?.status === 'CONFIRMED')}
+        onClose={() => setShowClosePanel(false)}
+        title={current ? `Registrar resultados — ${current.label}` : 'Registrar resultados'}
+        maxWidth="max-w-lg"
+      >
+        <div className="overflow-y-auto max-h-[70dvh] flex flex-col gap-3 mb-4">
+          {current?.subjects.map((code) => {
+            const s = allSubjects.find((x) => x.code === code)
+            const r = closeResults[code] ?? { status: 'PASSED', grade: '' }
+            const passed = r.status === 'PASSED'
+            return (
+              <div key={code} className="p-3 rounded-xl"
+                   style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
+                  {s?.name ?? code}
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--pt-border)' }}>
+                    <button
+                      onClick={() => setCloseResults((prev) => ({ ...prev, [code]: { ...r, status: 'PASSED' } }))}
+                      className="px-3 py-1.5 text-xs font-semibold transition-all"
+                      style={{
+                        background: passed ? 'rgba(110,231,183,0.2)' : 'transparent',
+                        color: passed ? 'var(--accent)' : 'var(--muted)',
+                      }}>
+                      Aprobada
+                    </button>
+                    <button
+                      onClick={() => setCloseResults((prev) => ({ ...prev, [code]: { ...r, status: 'FAILED' } }))}
+                      className="px-3 py-1.5 text-xs font-semibold transition-all"
+                      style={{
+                        background: !passed ? 'rgba(248,113,113,0.2)' : 'transparent',
+                        color: !passed ? '#f87171' : 'var(--muted)',
+                      }}>
+                      Reprobada
+                    </button>
                   </div>
-                )
-              })}
-            </div>
-
-            {closeError && <p className="text-xs mb-3" style={{ color: '#f87171' }}>{closeError}</p>}
-            <button onClick={handleClose} disabled={closing}
-                    className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
-                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-              {closing ? 'Guardando...' : 'Cerrar período'}
-            </button>
-          </div>
+                  <input
+                    type="number"
+                    placeholder="Nota"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={r.grade}
+                    onChange={(e) => setCloseResults((prev) => ({ ...prev, [code]: { ...r, grade: e.target.value } }))}
+                    className="w-20 px-2 py-1.5 rounded-lg text-xs border outline-none"
+                    style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
+                  />
+                </div>
+              </div>
+            )
+          })}
         </div>
-      )}
+        {closeError && <p className="text-xs mb-3" style={{ color: '#f87171' }}>{closeError}</p>}
+        <button onClick={handleClose} disabled={closing}
+                className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
+                style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          {closing ? 'Guardando...' : 'Cerrar período'}
+        </button>
+      </Modal>
 
       {/* Modal de detalle de materia */}
       <SubjectModal

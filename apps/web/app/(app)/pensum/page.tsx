@@ -11,14 +11,14 @@ import { Search } from 'lucide-react'
 
 type Filter = 'all' | 'passed' | 'in-progress' | 'available' | 'locked' | 'preselected'
 
-const STATUS_COLORS: Record<SubjectStatus, string> = {
-  passed:        'var(--accent)',
-  'in-progress': 'var(--warn)',
-  available:     'var(--accent2)',
-  preselected:   'var(--purple)',
-  locked:        'var(--muted)',
-  pending:       'var(--muted)',
-  failed:        'var(--danger)',
+const STATUS_COLORS: Record<SubjectStatus, { bg: string; border: string; text: string }> = {
+  passed:        { bg: 'rgba(110,231,183,0.15)', border: '#6ee7b7', text: '#6ee7b7' },
+  'in-progress': { bg: 'rgba(251,191,36,0.15)',  border: '#fbbf24', text: '#fbbf24' },
+  available:     { bg: 'rgba(56,189,248,0.15)',   border: '#38bdf8', text: '#38bdf8' },
+  preselected:   { bg: 'rgba(167,139,250,0.15)',  border: '#a78bfa', text: '#a78bfa' },
+  locked:        { bg: 'rgba(75,85,99,0.15)',     border: '#4b5563', text: '#6b7280' },
+  pending:       { bg: 'rgba(75,85,99,0.15)',     border: '#4b5563', text: '#6b7280' },
+  failed:        { bg: 'rgba(248,113,113,0.15)',  border: '#f87171', text: '#f87171' },
 }
 
 const STATUS_LABELS: Record<SubjectStatus, string> = {
@@ -130,11 +130,11 @@ export default function PensumPage() {
               <div className="flex flex-col gap-2">
                 {subjects.map((s) => {
                   const status = getSubjectStatus(s.code)
-                  const color  = STATUS_COLORS[status]
+                  const colors = STATUS_COLORS[status]
                   return (
                     <button key={s.code} onClick={() => openModal(s)}
                             className="flex items-center justify-between p-3 rounded-xl text-left w-full transition-all hover:opacity-80"
-                            style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                            style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{s.name}</p>
                         <p className="text-xs" style={{ color: 'var(--muted)' }}>
@@ -143,7 +143,7 @@ export default function PensumPage() {
                         </p>
                       </div>
                       <span className="text-xs font-medium ml-3 flex-shrink-0 px-2 py-1 rounded-full"
-                            style={{ background: `${color}20`, color }}>
+                            style={{ background: `${colors.border}20`, color: colors.text }}>
                         {STATUS_LABELS[status]}
                       </span>
                     </button>
