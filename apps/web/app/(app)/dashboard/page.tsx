@@ -1,18 +1,20 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useProgress } from '@/hooks/useProgress'
 import { progressApi } from '@/services/api'
 import { useProgressStore } from '@/store/useProgressStore'
-import { BookOpen, CheckCircle, Clock, Star } from 'lucide-react'
+import { BookOpen, CheckCircle, Clock, Star, TrendingUp } from 'lucide-react'
 
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
   const { profile, isLoading, getSubjectStatus, invalidateProgress } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
+  const [approvingCode, setApprovingCode] = useState<string | null>(null)
+  const [gradeInput, setGradeInput] = useState('')
 
   useEffect(() => {
     if (!isLoading && profile === null) router.replace('/onboarding')
@@ -42,17 +44,30 @@ export default function DashboardPage() {
     profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'IN_PROGRESS')
   )
 
-  const handleMarkPassed = async (code: string) => {
-    updateSubjectLocally(code, 'PASSED')
-    await progressApi.updateSubject(code, 'PASSED')
+  const handleMarkPassed = async (code: string, grade?: number) => {
+    updateSubjectLocally(code, 'PASSED', grade)
+    await progressApi.updateSubject(code, 'PASSED', grade)
     invalidateProgress()
+    setApprovingCode(null)
+    setGradeInput('')
   }
 
+  // Promedio ponderado e índice
+  const gradeEntries = allSubjects.flatMap(s => {
+    const rec = profile.subjects.find(ss => ss.subjectCode === s.code && ss.status === 'PASSED' && ss.grade != null)
+    return rec ? [{ credits: s.credits, grade: rec.grade! }] : []
+  })
+  const totalGradeCredits = gradeEntries.reduce((sum, e) => sum + e.credits, 0)
+  const promedio = totalGradeCredits > 0
+    ? Math.round((gradeEntries.reduce((sum, e) => sum + e.grade * e.credits, 0) / totalGradeCredits) * 100) / 100
+    : null
+  const indice = promedio != null ? Math.round((promedio * 4 / 100) * 100) / 100 : null
+
   const stats = [
-    { label: 'Créditos aprobados', value: `${earnedCredits}/${totalCredits}`, icon: Star, color: 'var(--accent)' },
-    { label: 'Materias aprobadas', value: passed,      icon: CheckCircle, color: 'var(--accent)' },
-    { label: 'En curso',           value: inProgress,  icon: Clock,       color: 'var(--warn)' },
-    { label: 'Disponibles',        value: available,   icon: BookOpen,    color: 'var(--accent2)' },
+    { label: 'Créditos aprobados', value: `${earnedCredits}/${totalCredits}`, icon: Star,       color: 'var(--accent)' },
+    { label: 'Materias aprobadas', value: passed,                             icon: CheckCircle, color: 'var(--accent)' },
+    { label: 'En curso',           value: inProgress,                         icon: Clock,       color: 'var(--warn)' },
+    { label: 'Disponibles',        value: available,                          icon: BookOpen,    color: 'var(--accent2)' },
   ]
 
   return (
@@ -79,7 +94,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
             <Icon size={18} style={{ color }} className="mb-2" />
@@ -88,6 +103,22 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Promedio e índice */}
+      {promedio != null && (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+            <TrendingUp size={18} style={{ color: 'var(--purple)' }} className="mb-2" />
+            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{promedio.toFixed(2)}</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Promedio (0–100)</p>
+          </div>
+          <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+            <TrendingUp size={18} style={{ color: 'var(--accent2)' }} className="mb-2" />
+            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{indice!.toFixed(2)}</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Índice estimado (0–4.0)</p>
+          </div>
+        </div>
+      )}
 
       {/* Preselección rápida */}
       {presel > 0 && (
@@ -111,17 +142,50 @@ export default function DashboardPage() {
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--muted)' }}>EN CURSO ESTE PERÍODO</h2>
           <div className="flex flex-col gap-2">
             {inProgressSubjects.map((s) => (
-              <div key={s.code} className="flex items-center justify-between p-3 rounded-xl"
+              <div key={s.code} className="flex flex-col gap-2 p-3 rounded-xl"
                    style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s.name}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{s.code} · {s.credits} créditos</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>{s.code} · {s.credits} créditos</p>
+                  </div>
+                  {approvingCode !== s.code && (
+                    <button onClick={() => { setApprovingCode(s.code); setGradeInput('') }}
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                            style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent)' }}>
+                      Aprobar
+                    </button>
+                  )}
                 </div>
-                <button onClick={() => handleMarkPassed(s.code)}
-                        className="text-xs px-3 py-1.5 rounded-lg font-medium"
-                        style={{ background: 'rgba(110,231,183,0.15)', color: 'var(--accent)' }}>
-                  Aprobar
-                </button>
+                {approvingCode === s.code && (
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="number"
+                      min={0} max={100} step={0.01}
+                      value={gradeInput}
+                      onChange={e => setGradeInput(e.target.value)}
+                      placeholder="Nota (opcional)"
+                      autoFocus
+                      className="flex-1 rounded-lg px-3 py-1.5 text-sm outline-none font-mono"
+                      style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+                    />
+                    <button
+                      onClick={() => {
+                        const g = gradeInput ? Math.min(100, Math.max(0, Number(gradeInput))) : undefined
+                        handleMarkPassed(s.code, g)
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                      OK
+                    </button>
+                    <button
+                      onClick={() => setApprovingCode(null)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

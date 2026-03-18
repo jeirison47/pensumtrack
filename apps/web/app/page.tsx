@@ -9,7 +9,7 @@ export default function RootPage() {
   const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
-    router.replace(isAuthenticated ? '/dashboard' : '/login')
+    router.replace(isAuthenticated ? '/dashboard' : '/landing')
   }, [isAuthenticated, router])
 
   return null

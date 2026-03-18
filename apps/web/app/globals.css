@@ -48,17 +48,32 @@
 }
 
 /* ─── PensumTrack design tokens ─────────────────────────────── */
-:root {
+:root,
+html.dark {
   --bg:       #0b0d12;
   --surface:  #13161e;
   --surface2: #1a1e28;
   --pt-border: #242834;
-  --accent:   #6ee7b7;
+  --accent:   #10b981;
   --accent2:  #38bdf8;
   --warn:     #fbbf24;
   --danger:   #f87171;
   --purple:   #a78bfa;
   --text:     #e8eaf0;
+  --muted:    #6b7280;
+}
+
+html.light {
+  --bg:       #f4f6fb;
+  --surface:  #ffffff;
+  --surface2: #eef0f6;
+  --pt-border: #dde0ea;
+  --accent:   #059669;
+  --accent2:  #0284c7;
+  --warn:     #d97706;
+  --danger:   #dc2626;
+  --purple:   #7c3aed;
+  --text:     #111827;
   --muted:    #6b7280;
 }
 

@@ -75,9 +75,9 @@ export default function PensumPage() {
     setSelectedStatus(getSubjectStatus(s.code))
   }
 
-  const handleChangeStatus = async (code: string, next: SubjectStatusDB) => {
-    updateSubjectLocally(code, next)
-    await progressApi.updateSubject(code, next)
+  const handleChangeStatus = async (code: string, next: SubjectStatusDB, grade?: number) => {
+    updateSubjectLocally(code, next, grade)
+    await progressApi.updateSubject(code, next, grade)
     invalidateProgress()
   }
 

@@ -4,7 +4,7 @@ import type { StudentProfileFull, SubjectStatusDB, PreselectionDB } from '@/serv
 interface ProgressState {
   profile: StudentProfileFull | null
   setProfile: (profile: StudentProfileFull | null) => void
-  updateSubjectLocally: (subjectCode: string, status: SubjectStatusDB) => void
+  updateSubjectLocally: (subjectCode: string, status: SubjectStatusDB, grade?: number | null) => void
   updatePreselectionSubjectsLocally: (id: string, subjectCodes: string[]) => void
   addPreselectionLocally: (preselection: PreselectionDB) => void
   removePreselectionLocally: (id: string, revertSubjects?: string[]) => void
@@ -16,13 +16,13 @@ export const useProgressStore = create<ProgressState>((set) => ({
 
   setProfile: (profile) => set({ profile }),
 
-  updateSubjectLocally: (subjectCode, status) =>
+  updateSubjectLocally: (subjectCode, status, grade) =>
     set((state) => {
       if (!state.profile) return state
       const exists = state.profile.subjects.find((s) => s.subjectCode === subjectCode)
       const updated = exists
-        ? state.profile.subjects.map((s) => s.subjectCode === subjectCode ? { ...s, status } : s)
-        : [...state.profile.subjects, { id: '', subjectCode, status, grade: null, period: null }]
+        ? state.profile.subjects.map((s) => s.subjectCode === subjectCode ? { ...s, status, ...(grade !== undefined ? { grade: grade ?? null } : {}) } : s)
+        : [...state.profile.subjects, { id: '', subjectCode, status, grade: grade ?? null, period: null }]
       return { profile: { ...state.profile, subjects: updated } }
     }),
 

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useThemeStore } from '@/store/useThemeStore'
 import { authApi } from '@/services/api'
 
 const queryClient = new QueryClient({
@@ -31,10 +32,21 @@ function AuthLoader({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function ThemeApplier({ children }: { children: React.ReactNode }) {
+  const theme = useThemeStore(s => s.theme)
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    document.documentElement.classList.toggle('light', theme === 'light')
+  }, [theme])
+  return <>{children}</>
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthLoader>{children}</AuthLoader>
+      <ThemeApplier>
+        <AuthLoader>{children}</AuthLoader>
+      </ThemeApplier>
     </QueryClientProvider>
   )
 }

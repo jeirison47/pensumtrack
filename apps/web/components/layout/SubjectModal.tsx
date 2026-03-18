@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { CheckCircle, XCircle, Lock, Clock, Star, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
@@ -75,17 +76,22 @@ interface Props {
   getSubjectStatus: (code: string) => SubjectStatus
   preselectedCodes: string[]
   onClose: () => void
-  onChangeStatus?: (code: string, next: SubjectStatusDB) => Promise<void>
+  onChangeStatus?: (code: string, next: SubjectStatusDB, grade?: number) => Promise<void>
+  gradeOf?: (code: string) => number | null
   onTogglePreselection?: (code: string) => void
 }
 
 export function SubjectModal({
   subject, status, allSubjects, getSubjectStatus,
-  preselectedCodes, onClose, onChangeStatus, onTogglePreselection,
+  preselectedCodes, onClose, onChangeStatus, onTogglePreselection, gradeOf,
 }: Props) {
+  const [gradeInput, setGradeInput] = useState('')
+  const [awaitingGrade, setAwaitingGrade] = useState(false)
+
   if (!subject) return null
 
   const color = STATUS_COLORS[status]
+  const currentGrade = gradeOf?.(subject.code)
 
   // Relaciones
   const isPrereqOf  = allSubjects.filter((s) => s.prerequisites.includes(subject.code))
@@ -216,17 +222,71 @@ export function SubjectModal({
         </div>
       )}
 
+      {/* Nota actual (si está aprobada y tiene nota) */}
+      {status === 'passed' && currentGrade != null && (
+        <div className="flex items-center gap-3 p-3 rounded-xl"
+             style={{ background: 'var(--surface2)' }}>
+          <Star size={15} style={{ color: 'var(--accent)' }} />
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>Nota registrada:</span>
+          <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{currentGrade}</span>
+        </div>
+      )}
+
       {/* Acciones de estado */}
       {actions.length > 0 && onChangeStatus && (
         <div className="flex flex-col gap-2">
-          {actions.map((action) => (
-            <button key={action.next}
-                    onClick={() => { onChangeStatus(subject.code, action.next); onClose() }}
-                    className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity"
-                    style={ACTION_STYLES[action.style]}>
-              {action.label}
-            </button>
-          ))}
+          {awaitingGrade ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
+                Nota obtenida (opcional, 0–100)
+              </p>
+              <input
+                type="number"
+                min={0} max={100} step={0.01}
+                value={gradeInput}
+                onChange={e => setGradeInput(e.target.value)}
+                placeholder="Ej: 85"
+                autoFocus
+                className="w-full rounded-xl px-4 py-3 text-sm outline-none font-mono"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const grade = gradeInput ? Math.min(100, Math.max(0, Number(gradeInput))) : undefined
+                    onChangeStatus(subject.code, 'PASSED', grade)
+                    onClose()
+                  }}
+                  className="flex-1 py-3 rounded-xl font-semibold text-sm"
+                  style={ACTION_STYLES.primary}>
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => { setAwaitingGrade(false); setGradeInput('') }}
+                  className="flex-1 py-3 rounded-xl font-semibold text-sm"
+                  style={ACTION_STYLES.ghost}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            actions.map((action) => (
+              <button key={action.next}
+                      onClick={() => {
+                        if (action.next === 'PASSED') {
+                          setGradeInput('')
+                          setAwaitingGrade(true)
+                        } else {
+                          onChangeStatus(subject.code, action.next)
+                          onClose()
+                        }
+                      }}
+                      className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity"
+                      style={ACTION_STYLES[action.style]}>
+                {action.label}
+              </button>
+            ))
+          )}
         </div>
       )}
 

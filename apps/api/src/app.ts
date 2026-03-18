@@ -5,6 +5,7 @@ import { authRoutes } from './routes/auth.routes.js'
 import { careerRoutes } from './routes/career.routes.js'
 import { progressRoutes } from './routes/progress.routes.js'
 import { universityRoutes } from './routes/university.routes.js'
+import { adminRoutes } from './routes/admin.routes.js'
 
 const app = new Hono()
 
@@ -25,6 +26,7 @@ app.route('/api/auth', authRoutes)
 app.route('/api/universities', universityRoutes)
 app.route('/api/careers', careerRoutes)
 app.route('/api/progress', progressRoutes)
+app.route('/api/admin', adminRoutes)
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
 

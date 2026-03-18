@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
-import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser } from 'lucide-react'
+import { useThemeStore } from '@/store/useThemeStore'
+import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser, Moon, Sun, Shield } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard',    label: 'Inicio',      icon: LayoutDashboard },
@@ -16,6 +17,7 @@ const nav = [
 export function TopNav() {
   const pathname = usePathname()
   const { user } = useAuthStore()
+  const { theme, toggle } = useThemeStore()
 
   return (
     <header className="hidden md:flex items-center justify-between px-8 py-4 sticky top-0 z-50"
@@ -44,15 +46,34 @@ export function TopNav() {
         })}
       </nav>
 
-      <Link href="/perfil"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
-            style={{
-              color: pathname === '/perfil' ? 'var(--accent)' : 'var(--muted)',
-              background: pathname === '/perfil' ? 'rgba(110,231,183,0.08)' : 'transparent',
-            }}>
-        <CircleUser size={16} />
-        Perfil
-      </Link>
+      <div className="flex items-center gap-2">
+        {user?.isAdmin && (
+          <Link href="/admin"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+                style={{
+                  color: pathname.startsWith('/admin') ? 'var(--accent)' : 'var(--muted)',
+                  background: pathname.startsWith('/admin') ? 'rgba(16,185,129,0.08)' : 'transparent',
+                }}>
+            <Shield size={16} />
+            Admin
+          </Link>
+        )}
+        <Link href="/perfil"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+              style={{
+                color: pathname === '/perfil' ? 'var(--accent)' : 'var(--muted)',
+                background: pathname === '/perfil' ? 'rgba(16,185,129,0.08)' : 'transparent',
+              }}>
+          <CircleUser size={16} />
+          Perfil
+        </Link>
+        <button onClick={toggle}
+                className="p-2 rounded-lg transition-colors hover:opacity-70"
+                style={{ color: 'var(--muted)' }}
+                title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+      </div>
     </header>
   )
 }

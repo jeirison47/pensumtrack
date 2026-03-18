@@ -1,25 +1,38 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'PensumTrack',
   description: 'Gestiona el progreso de tu carrera universitaria',
-  icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'PensumTrack',
   },
+  icons: {
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/icon-192.png',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#10b981',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" style={{ backgroundColor: '#0b0d12' }}>
+    <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
       </head>
-      <body style={{ fontFamily: "'DM Sans', sans-serif", backgroundColor: '#0b0d12', color: '#e8eaf0' }}>
+      <body style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <Providers>{children}</Providers>
       </body>
     </html>

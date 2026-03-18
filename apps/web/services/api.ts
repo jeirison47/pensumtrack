@@ -15,7 +15,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   })
 
-  const json = await res.json()
+  const text = await res.text()
+  const json = text ? JSON.parse(text) : {}
   if (!res.ok) throw new Error(json.error ?? 'Error desconocido')
   return json
 }
@@ -116,7 +117,39 @@ export const userApi = {
     }),
 }
 
+// ─── Admin ─────────────────────────────────────────────────────────────────
+
+export const adminApi = {
+  stats: () => request<{ data: AdminStats }>('/admin/stats'),
+  users: (q?: string, page?: number) =>
+    request<{ data: AdminUserList }>(`/admin/users?q=${q ?? ''}&page=${page ?? 1}`),
+  toggleAdmin: (id: string, isAdmin: boolean) =>
+    request<{ data: User }>(`/admin/users/${id}/admin`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isAdmin }),
+    }),
+  toggleActive: (id: string, isActive: boolean) =>
+    request<{ data: User }>(`/admin/users/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    }),
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface AdminStats {
+  totalUsers: number
+  totalUniversities: number
+  totalCareers: number
+  recentUsers: { id: string; email: string; displayName: string; createdAt: string }[]
+}
+
+export interface AdminUserList {
+  users: (User & { isActive: boolean })[]
+  total: number
+  page: number
+  pages: number
+}
 
 export interface User {
   id: string
