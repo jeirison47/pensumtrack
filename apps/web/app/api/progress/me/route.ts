@@ -7,11 +7,11 @@ export async function GET(request: NextRequest) {
   if (!userId) return unauthorized()
 
   const profile = await prisma.studentProfile.findFirst({
-    where: { userId, isActive: true },
+    where: { userId },
     include: {
       career: { include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } } },
       subjects: true,
-      preselections: { orderBy: { createdAt: 'asc' } },
+      preselections: { orderBy: { updatedAt: 'asc' } },
     },
   })
 

@@ -24,16 +24,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  register: (email: string, password: string, displayName: string) =>
+  register: (email: string, username: string, password: string, displayName: string) =>
     request<{ data: { user: User; token: string } }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, displayName }),
+      body: JSON.stringify({ email, username, password, displayName }),
     }),
 
-  login: (email: string, password: string) =>
+  login: (identifier: string, password: string) =>
     request<{ data: { user: User; token: string } }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     }),
 
   me: () => request<{ data: User }>('/auth/me'),
@@ -133,6 +133,68 @@ export const adminApi = {
       method: 'PATCH',
       body: JSON.stringify({ isActive }),
     }),
+  assignPlan: (id: string, planId: string | null) =>
+    request<{ data: User }>(`/admin/users/${id}/plan`, {
+      method: 'PATCH',
+      body: JSON.stringify({ planId }),
+    }),
+  resetPassword: (id: string, newPassword: string) =>
+    request<{ data: { message: string } }>(`/admin/users/${id}/reset-password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newPassword }),
+    }),
+  deleteUser: (id: string) =>
+    request<{ data: { id: string } }>(`/admin/users/${id}`, { method: 'DELETE' }),
+  bulkAction: (ids: string[], action: 'delete' | 'activate' | 'deactivate' | 'assign_plan', planId?: string | null) =>
+    request<{ data: { affected: number } }>('/admin/users/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ ids, action, planId }),
+    }),
+  listPlans: () => request<{ data: Plan[] }>('/admin/plans'),
+  createPlan: (data: { name: string; description?: string; features: string[]; isDefault?: boolean }) =>
+    request<{ data: Plan }>('/admin/plans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  deletePlan: (id: string) =>
+    request<{ data: { id: string } }>(`/admin/plans/${id}`, { method: 'DELETE' }),
+}
+
+export const pensumApi = {
+  preview: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    return fetch('/api/admin/pensums/preview', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then(async (res) => {
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Error al parsear')
+      return json as { data: ParsedPensum }
+    })
+  },
+  import: (pensum: ParsedPensum) =>
+    request<{ data: CareerVersion }>('/admin/pensums/import', {
+      method: 'POST',
+      body: JSON.stringify(pensum),
+    }),
+  list: () => request<{ data: CareerVersion[] }>('/admin/pensums'),
+  toggleActive: (id: string, isActive: boolean) =>
+    request<{ data: { id: string; isActive: boolean } }>(`/admin/pensums/${id}/active`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    }),
+}
+
+export const pensumRequestsApi = {
+  listAdmin: () => request<{ data: PensumRequest[] }>('/admin/pensum-requests'),
+  updateStatus: (id: string, status: PensumRequestStatus) =>
+    request<{ data: PensumRequest }>(`/admin/pensum-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -145,7 +207,7 @@ export interface AdminStats {
 }
 
 export interface AdminUserList {
-  users: (User & { isActive: boolean })[]
+  users: (User & { isActive: boolean; plan?: { id: string; name: string } | null })[]
   total: number
   page: number
   pages: number
@@ -154,14 +216,27 @@ export interface AdminUserList {
 export interface User {
   id: string
   email: string
+  username: string | null
   displayName: string
   isAdmin: boolean
+  planName?: string | null
+  planFeatures?: string[]
   createdAt: string
   settings?: {
     id: string
     careerId: string
     currentSemester: number
   } | null
+}
+
+export interface Plan {
+  id: string
+  name: string
+  description: string | null
+  isDefault: boolean
+  createdAt: string
+  features: { id: string; featureKey: string }[]
+  _count: { users: number }
 }
 
 export interface UniversitySummary {
@@ -248,4 +323,53 @@ export interface StudentProfileFull {
   career: CareerWithSubjects
   subjects: StudentSubjectDB[]
   preselections: PreselectionDB[]
+}
+
+export interface ParsedSubject {
+  code: string
+  name: string
+  credits: number
+  semester: number
+  area: string | null
+  prerequisites: string[]
+  corequisites: string[]
+}
+
+export interface ParsedPensum {
+  university: string
+  career: string
+  totalCredits: number
+  durationSemesters: number
+  periodType: 'semester' | 'quarter' | 'trimester'
+  year: number
+  subjects: ParsedSubject[]
+  warnings: string[]
+}
+
+export type PensumRequestStatus = 'PENDING' | 'IN_REVIEW' | 'COMPLETED' | 'REJECTED'
+
+export interface PensumRequest {
+  id: string
+  university: string
+  career: string
+  year: number | null
+  periodType: string
+  link: string | null
+  comment: string | null
+  status: PensumRequestStatus
+  createdAt: string
+  user: { id: string; displayName: string; email: string; username: string | null }
+}
+
+export interface CareerVersion {
+  id: string
+  name: string
+  year: number | null
+  periodType: string
+  totalCredits: number
+  durationSemesters: number
+  isActive: boolean
+  createdAt: string
+  university: { id: string; name: string; shortName: string }
+  _count: { subjects: number; profiles: number }
 }

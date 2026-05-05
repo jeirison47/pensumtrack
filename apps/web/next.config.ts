@@ -14,6 +14,7 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@pensumtrack/types', '@pensumtrack/utils'],
+  turbopack: {},
 }
 
 export default withPWA(nextConfig)

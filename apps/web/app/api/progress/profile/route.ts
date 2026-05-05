@@ -24,20 +24,13 @@ export async function POST(request: NextRequest) {
     const career = await prisma.career.findUnique({ where: { id: careerId } })
     if (!career) return NextResponse.json({ error: 'Carrera no encontrada' }, { status: 404 })
 
-    // Verificar si ya tiene esta carrera
-    const existing = await prisma.studentProfile.findUnique({
-      where: { userId_careerId: { userId, careerId } },
-    })
+    const existing = await prisma.studentProfile.findFirst({ where: { userId, careerId } })
     if (existing) {
       return NextResponse.json({ error: 'Ya tienes esta carrera agregada' }, { status: 400 })
     }
 
-    // Primera carrera del usuario → activa; adicionales → inactivas por defecto
-    const hasProfiles = await prisma.studentProfile.count({ where: { userId } })
-    const isActive = hasProfiles === 0
-
     const profile = await prisma.studentProfile.create({
-      data: { userId, careerId, currentSemester, isActive },
+      data: { userId, careerId, currentSemester },
       include: {
         career: { include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } } },
         subjects: true,

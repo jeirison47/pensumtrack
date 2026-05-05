@@ -223,6 +223,12 @@ function OnboardingContent() {
             {loading ? (isAddMode ? 'Agregando...' : 'Iniciando...') : (isAddMode ? 'Agregar carrera' : 'Comenzar')}
             {!loading && <ChevronRight size={18} />}
           </button>
+
+          <button onClick={() => router.push('/solicitar')}
+                  className="w-full py-3 text-sm transition-opacity hover:opacity-70"
+                  style={{ color: 'var(--muted)' }}>
+            ¿No encuentras tu carrera? Solicitar que la agreguen
+          </button>
         </>
       )}
     </div>

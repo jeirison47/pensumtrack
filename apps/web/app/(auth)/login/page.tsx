@@ -3,25 +3,27 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import { authApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
   const router = useRouter()
   const { setAuth } = useAuthStore()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const res = await authApi.login(email, password)
+      const res = await authApi.login(identifier, password)
       setAuth(res.data.user, res.data.token)
-      router.replace('/dashboard')
+      router.replace(res.data.user.isAdmin ? '/admin' : '/dashboard')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
@@ -43,19 +45,39 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm" style={{ color: 'var(--muted)' }}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                   required placeholder="tu@email.com"
-                   className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
-                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            <label className="text-sm" style={{ color: 'var(--muted)' }}>Email o usuario</label>
+            <input
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+              placeholder="tu@email.com o @usuario"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
+              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+            />
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-sm" style={{ color: 'var(--muted)' }}>Contraseña</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                   required placeholder="••••••••"
-                   className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-3 pr-11 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                style={{ color: 'var(--muted)' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -64,9 +86,12 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button type="submit" disabled={loading}
-                  className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-60"
-                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-60"
+            style={{ background: 'var(--accent)', color: '#0b0d12' }}
+          >
             {loading ? 'Entrando...' : 'Iniciar sesión'}
           </button>
         </form>

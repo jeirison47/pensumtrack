@@ -30,7 +30,7 @@ export function TopNav() {
       </Link>
 
       <nav className="flex items-center gap-1">
-        {nav.map(({ href, label, icon: Icon }) => {
+        {!user?.isAdmin && nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
             <Link key={href} href={href}
@@ -44,20 +44,20 @@ export function TopNav() {
             </Link>
           )
         })}
-      </nav>
-
-      <div className="flex items-center gap-2">
         {user?.isAdmin && (
           <Link href="/admin"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
                 style={{
                   color: pathname.startsWith('/admin') ? 'var(--accent)' : 'var(--muted)',
                   background: pathname.startsWith('/admin') ? 'rgba(16,185,129,0.08)' : 'transparent',
                 }}>
             <Shield size={16} />
-            Admin
+            Panel Admin
           </Link>
         )}
+      </nav>
+
+      <div className="flex items-center gap-2">
         <Link href="/perfil"
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
               style={{

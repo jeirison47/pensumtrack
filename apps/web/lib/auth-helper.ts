@@ -16,3 +16,7 @@ export function getUserId(request: NextRequest): string | null {
 export function unauthorized() {
   return NextResponse.json({ error: 'Token requerido' }, { status: 401 })
 }
+
+export function forbidden() {
+  return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+}

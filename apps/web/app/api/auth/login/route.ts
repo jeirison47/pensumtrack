@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 
 const schema = z.object({
-  email: z.string().email('Email inválido'),
+  identifier: z.string().min(1, 'Email o usuario requerido'),
   password: z.string().min(1, 'Contraseña requerida'),
 })
 
@@ -17,9 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
-    const { email, password } = result.data
+    const { identifier, password } = result.data
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await prisma.user.findFirst({
+      where: identifier.includes('@') ? { email: identifier } : { username: identifier },
+      include: {
+        plan: { select: { name: true, features: { select: { featureKey: true } } } },
+        profiles: { select: { id: true, careerId: true, currentSemester: true }, take: 1, orderBy: { createdAt: 'asc' } },
+      },
+    })
+
     if (!user || !user.passwordHash) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
     }
@@ -36,7 +43,17 @@ export async function POST(request: NextRequest) {
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET ?? '', { expiresIn: '7d' })
     return NextResponse.json({
       data: {
-        user: { id: user.id, email: user.email, displayName: user.displayName, isAdmin: user.isAdmin, createdAt: user.createdAt },
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          displayName: user.displayName,
+          isAdmin: user.isAdmin,
+          createdAt: user.createdAt,
+          planName: user.plan?.name ?? null,
+          planFeatures: user.plan?.features.map((f) => f.featureKey) ?? [],
+          settings: user.profiles[0] ?? null,
+        },
         token,
       },
     })

@@ -20,8 +20,10 @@
       "@prisma/engines",
       "bcrypt",
       "esbuild",
+      "msw",
       "prisma",
-      "sharp"
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { TopNav } from '@/components/layout/TopNav'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { Toaster } from 'react-hot-toast'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -23,6 +24,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <BottomNav />
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          style: { background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--pt-border)' },
+        }}
+      />
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi, userApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
-import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff } from 'lucide-react'
+import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 
 export default function PerfilPage() {
@@ -284,6 +284,14 @@ export default function PerfilPage() {
           </div>
         )}
       </div>
+
+      {/* Solicitar pensum */}
+      <button onClick={() => router.push('/solicitar')}
+              className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium mb-3"
+              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
+        <BookMarked size={16} />
+        Solicitar pensum
+      </button>
 
       {/* Cerrar sesión */}
       <button onClick={() => setConfirmLogout(true)}

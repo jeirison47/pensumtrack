@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import { authApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
@@ -11,16 +12,28 @@ export default function RegisterPage() {
   const { setAuth } = useAuthStore()
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const handleUsernameChange = (value: string) => {
+    setUsername(value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (username.length < 3) {
+      setError('El usuario debe tener al menos 3 caracteres')
+      return
+    }
+
     setLoading(true)
     try {
-      const res = await authApi.register(email, password, displayName)
+      const res = await authApi.register(email, username, password, displayName)
       setAuth(res.data.user, res.data.token)
       router.replace('/onboarding')
     } catch (err: unknown) {
@@ -45,26 +58,71 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm" style={{ color: 'var(--muted)' }}>Nombre</label>
-            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                   required placeholder="Tu nombre"
-                   className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+              placeholder="Tu nombre"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm" style={{ color: 'var(--muted)' }}>Usuario</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm select-none"
+                    style={{ color: 'var(--muted)' }}>@</span>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => handleUsernameChange(e.target.value)}
+                required
+                placeholder="tu_usuario"
+                maxLength={20}
+                className="w-full pl-8 pr-4 py-3 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+              />
+            </div>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Solo letras minúsculas, números y guiones bajos</p>
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-sm" style={{ color: 'var(--muted)' }}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                   required placeholder="tu@email.com"
-                   className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="tu@email.com"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+            />
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-sm" style={{ color: 'var(--muted)' }}>Contraseña</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                   required placeholder="Mínimo 6 caracteres" minLength={6}
-                   className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Mínimo 6 caracteres"
+                minLength={6}
+                className="w-full px-4 py-3 pr-11 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                style={{ color: 'var(--muted)' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -73,9 +131,12 @@ export default function RegisterPage() {
             </p>
           )}
 
-          <button type="submit" disabled={loading}
-                  className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-60"
-                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-60"
+            style={{ background: 'var(--accent)', color: '#0b0d12' }}
+          >
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
           </button>
         </form>

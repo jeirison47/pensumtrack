@@ -17,8 +17,9 @@ export default function DashboardPage() {
   const [gradeInput, setGradeInput] = useState('')
 
   useEffect(() => {
+    if (user?.isAdmin) { router.replace('/admin'); return }
     if (!isLoading && profile === null) router.replace('/onboarding')
-  }, [isLoading, profile, router])
+  }, [isLoading, profile, router, user])
 
   if (isLoading || profile === null) {
     return (

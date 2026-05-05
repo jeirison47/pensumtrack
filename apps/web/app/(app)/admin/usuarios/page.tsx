@@ -1,35 +1,103 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { Search, Shield, ShieldOff, UserCheck, UserX, Users, BookOpen, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react'
-import { adminApi, type AdminStats } from '@/services/api'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import {
+  Search, Shield, ShieldOff, UserCheck, UserX, Users, BookOpen, GraduationCap,
+  ChevronLeft, ChevronRight, Plus, Trash2, CreditCard, Tag, KeyRound,
+  Upload, Eye, EyeOff, CheckCircle, AlertTriangle, ToggleLeft, ToggleRight, Copy, Check,
+} from 'lucide-react'
+import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus } from '@/services/api'
+import { PENSUM_TEMPLATE, PERIOD_LABELS } from '@/lib/parsePensum'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import toast from 'react-hot-toast'
 
 type AdminUser = {
   id: string
   email: string
+  username: string | null
   displayName: string
   isAdmin: boolean
   isActive: boolean
   createdAt: string
+  plan?: { id: string; name: string } | null
 }
 
-export default function AdminUsuariosPage() {
+type Tab = 'usuarios' | 'planes' | 'pensums' | 'solicitudes'
+
+const TAB_LABELS: Record<Tab, string> = { usuarios: 'Usuarios', planes: 'Planes', pensums: 'Pensums', solicitudes: 'Solicitudes' }
+
+export default function AdminPage() {
+  const [tab, setTab] = useState<Tab>('usuarios')
+
+  return (
+    <div className="p-4 md:p-6 space-y-5 max-w-5xl mx-auto">
+      <h1 className="text-xl font-bold" style={{ fontFamily: 'Syne, sans-serif', color: 'var(--text)' }}>
+        Panel de administración
+      </h1>
+
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--surface2)' }}>
+        {(['usuarios', 'planes', 'pensums', 'solicitudes'] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              background: tab === t ? 'var(--surface)' : 'transparent',
+              color: tab === t ? 'var(--text)' : 'var(--muted)',
+            }}
+          >
+            {TAB_LABELS[t]}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'usuarios' && <UsersTab />}
+      {tab === 'planes' && <PlansTab />}
+      {tab === 'pensums' && <PensumsTab />}
+      {tab === 'solicitudes' && <RequestsTab />}
+    </div>
+  )
+}
+
+// ─── Users Tab ────────────────────────────────────────────────────────────────
+
+function UsersTab() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [resetTarget, setResetTarget] = useState<AdminUser | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [resetting, setResetting] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [bulkActing, setBulkActing] = useState(false)
+  const [bulkPlanId, setBulkPlanId] = useState('')
+  const selectAllRef = useRef<HTMLInputElement>(null)
+
+  const allSelected = users.length > 0 && selected.size === users.length
+  const someSelected = selected.size > 0
 
   useEffect(() => {
-    adminApi.stats().then(r => setStats(r.data)).catch(() => {})
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected && !allSelected
+    }
+  }, [someSelected, allSelected])
+
+  useEffect(() => {
+    adminApi.stats().then((r) => setStats(r.data)).catch(() => {})
+    adminApi.listPlans().then((r) => setPlans(r.data)).catch(() => {})
   }, [])
 
   const fetchUsers = useCallback(async (query: string, pg: number) => {
     setLoading(true)
+    setSelected(new Set())
     try {
       const r = await adminApi.users(query, pg)
       setUsers(r.data.users as AdminUser[])
@@ -43,19 +111,47 @@ export default function AdminUsuariosPage() {
     }
   }, [])
 
-  useEffect(() => {
-    fetchUsers(search, 1)
-  }, [search, fetchUsers])
+  useEffect(() => { fetchUsers(search, 1) }, [search, fetchUsers])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     setSearch(q)
   }
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (allSelected) setSelected(new Set())
+    else setSelected(new Set(users.map((u) => u.id)))
+  }
+
+  async function handleBulkAction(action: 'activate' | 'deactivate' | 'assign_plan' | 'delete', planId?: string | null) {
+    setBulkActing(true)
+    try {
+      const ids = Array.from(selected)
+      const r = await adminApi.bulkAction(ids, action, planId)
+      toast.success(`${r.data.affected} usuario(s) actualizados`)
+      setSelected(new Set())
+      setBulkDeleteConfirm(false)
+      fetchUsers(search, page)
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    } finally {
+      setBulkActing(false)
+    }
+  }
+
   async function handleToggleAdmin(user: AdminUser) {
     try {
       await adminApi.toggleAdmin(user.id, !user.isAdmin)
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isAdmin: !u.isAdmin } : u))
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, isAdmin: !u.isAdmin } : u))
     } catch (err: any) {
       toast.error(err.message || 'Error')
     }
@@ -64,19 +160,54 @@ export default function AdminUsuariosPage() {
   async function handleToggleActive(user: AdminUser) {
     try {
       await adminApi.toggleActive(user.id, !user.isActive)
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u))
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, isActive: !u.isActive } : u))
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!deleteTarget) return
+    try {
+      await adminApi.deleteUser(deleteTarget.id)
+      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
+      setTotal((prev) => prev - 1)
+      toast.success(`${deleteTarget.displayName} eliminado`)
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar')
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!resetTarget || newPassword.length < 6) return
+    setResetting(true)
+    try {
+      await adminApi.resetPassword(resetTarget.id, newPassword)
+      toast.success(`Contraseña de ${resetTarget.displayName} actualizada`)
+      setResetTarget(null)
+      setNewPassword('')
+    } catch (err: any) {
+      toast.error(err.message || 'Error al resetear contraseña')
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  async function handleAssignPlan(user: AdminUser, planId: string | null) {
+    try {
+      await adminApi.assignPlan(user.id, planId)
+      const plan = plans.find((p) => p.id === planId) ?? null
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, plan: plan ? { id: plan.id, name: plan.name } : null } : u))
+      toast.success('Plan actualizado')
     } catch (err: any) {
       toast.error(err.message || 'Error')
     }
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-5xl mx-auto">
-      <h1 className="text-xl font-bold" style={{ fontFamily: 'Syne, sans-serif', color: 'var(--text)' }}>
-        Panel de administración
-      </h1>
-
-      {/* Stats */}
+    <div className="space-y-5">
       {stats && (
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -94,15 +225,14 @@ export default function AdminUsuariosPage() {
         </div>
       )}
 
-      {/* Search */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2"
           style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
           <Search size={15} style={{ color: 'var(--muted)' }} />
           <input
             value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="Buscar por nombre o email…"
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar por nombre, usuario o email…"
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: 'var(--text)' }}
           />
@@ -113,11 +243,68 @@ export default function AdminUsuariosPage() {
         </button>
       </form>
 
-      {/* Users table */}
+      {/* Bulk action bar */}
+      {someSelected && (
+        <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl"
+          style={{ background: 'var(--surface)', border: '1px solid var(--accent)' }}>
+          <span className="text-sm font-medium" style={{ color: 'var(--accent)' }}>
+            {selected.size} seleccionado(s)
+          </span>
+          <button onClick={() => setSelected(new Set())}
+            className="text-xs px-2 py-1 rounded-lg transition hover:opacity-70"
+            style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+            Deseleccionar
+          </button>
+          <div className="flex-1" />
+          <button onClick={() => handleBulkAction('activate')} disabled={bulkActing}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
+            style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
+            Activar
+          </button>
+          <button onClick={() => handleBulkAction('deactivate')} disabled={bulkActing}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
+            style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
+            Desactivar
+          </button>
+          {plans.length > 0 && (
+            <div className="flex items-center gap-1">
+              <select
+                value={bulkPlanId}
+                onChange={(e) => setBulkPlanId(e.target.value)}
+                className="text-xs rounded-lg px-2 py-1.5 outline-none"
+                style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
+                <option value="">Sin plan</option>
+                {plans.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <button onClick={() => handleBulkAction('assign_plan', bulkPlanId || null)} disabled={bulkActing}
+                className="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
+                style={{ background: 'rgba(56,189,248,0.12)', color: 'var(--accent2)' }}>
+                Asignar plan
+              </button>
+            </div>
+          )}
+          <button onClick={() => setBulkDeleteConfirm(true)} disabled={bulkActing}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
+            style={{ background: 'rgba(248,113,113,0.15)', color: 'var(--danger)' }}>
+            <Trash2 size={12} />
+            Eliminar
+          </button>
+        </div>
+      )}
+
       <div className="rounded-2xl overflow-hidden"
         style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-        <div className="px-4 py-3 flex items-center justify-between"
-          style={{ borderBottom: '1px solid var(--pt-border)' }}>
+        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid var(--pt-border)' }}>
+          <input
+            ref={selectAllRef}
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleAll}
+            className="w-4 h-4 rounded cursor-pointer flex-shrink-0"
+            style={{ accentColor: 'var(--accent)' }}
+          />
           <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
             Usuarios <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>({total})</span>
           </p>
@@ -132,17 +319,37 @@ export default function AdminUsuariosPage() {
           <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>Sin resultados</p>
         ) : (
           <div className="divide-y" style={{ borderColor: 'var(--pt-border)' }}>
-            {users.map(user => (
-              <div key={user.id} className="flex items-center gap-3 px-4 py-3">
+            {users.map((user) => (
+              <div key={user.id}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ background: selected.has(user.id) ? 'rgba(110,231,183,0.04)' : undefined }}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(user.id)}
+                  onChange={() => toggleSelect(user.id)}
+                  className="w-4 h-4 rounded cursor-pointer flex-shrink-0"
+                  style={{ accentColor: 'var(--accent)' }}
+                />
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                   style={{ background: 'var(--surface2)', color: 'var(--accent)' }}>
                   {user.displayName[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{user.displayName}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>{user.email}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{user.displayName}</p>
+                    {user.username && (
+                      <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>@{user.username}</span>
+                    )}
+                  </div>
+                  <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>{user.email}</p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {user.plan && (
+                    <span className="text-xs px-2 py-0.5 rounded-full hidden sm:inline"
+                      style={{ background: 'rgba(56,189,248,0.12)', color: 'var(--accent2)' }}>
+                      {user.plan.name}
+                    </span>
+                  )}
                   {user.isAdmin && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                       style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
@@ -155,6 +362,25 @@ export default function AdminUsuariosPage() {
                       Inactivo
                     </span>
                   )}
+                  {plans.length > 0 && (
+                    <select
+                      value={user.plan?.id ?? ''}
+                      onChange={(e) => handleAssignPlan(user, e.target.value || null)}
+                      className="text-xs rounded-lg px-2 py-1 outline-none transition"
+                      style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}
+                      title="Asignar plan">
+                      <option value="">Sin plan</option>
+                      {plans.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  )}
+                  <button onClick={() => { setResetTarget(user); setNewPassword('') }}
+                    title="Resetear contraseña"
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: 'var(--muted)' }}>
+                    <KeyRound size={15} />
+                  </button>
                   <button onClick={() => handleToggleAdmin(user)}
                     title={user.isAdmin ? 'Quitar admin' : 'Hacer admin'}
                     className="p-1.5 rounded-lg transition hover:opacity-70"
@@ -167,6 +393,12 @@ export default function AdminUsuariosPage() {
                     style={{ color: user.isActive ? 'var(--muted)' : 'var(--danger)' }}>
                     {user.isActive ? <UserX size={15} /> : <UserCheck size={15} />}
                   </button>
+                  <button onClick={() => setDeleteTarget(user)}
+                    title="Eliminar usuario"
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: 'var(--danger)' }}>
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -174,7 +406,6 @@ export default function AdminUsuariosPage() {
         )}
       </div>
 
-      {/* Pagination */}
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3">
           <button onClick={() => fetchUsers(search, page - 1)} disabled={page <= 1}
@@ -182,9 +413,7 @@ export default function AdminUsuariosPage() {
             style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--pt-border)' }}>
             <ChevronLeft size={16} />
           </button>
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>
-            Página {page} de {pages}
-          </span>
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>Página {page} de {pages}</span>
           <button onClick={() => fetchUsers(search, page + 1)} disabled={page >= pages}
             className="p-2 rounded-lg transition hover:opacity-70 disabled:opacity-30"
             style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--pt-border)' }}>
@@ -192,6 +421,610 @@ export default function AdminUsuariosPage() {
           </button>
         </div>
       )}
+
+      {/* Reset password modal */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setResetTarget(null)}>
+          <div className="w-full max-w-xs p-5 rounded-2xl space-y-4"
+            style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
+            onClick={(e) => e.stopPropagation()}>
+            <div>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>
+                Resetear contraseña
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                {resetTarget.displayName} · {resetTarget.email}
+              </p>
+            </div>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Nueva contraseña (mín. 6 caracteres)"
+              className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setResetTarget(null)}
+                className="px-3 py-1.5 rounded-xl text-sm"
+                style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetting || newPassword.length < 6}
+                className="px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                {resetting ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete single user */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        message={`¿Eliminar a "${deleteTarget?.displayName}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        dangerous
+        onConfirm={handleDeleteUser}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* Bulk delete confirm */}
+      <ConfirmModal
+        open={bulkDeleteConfirm}
+        message={`¿Eliminar ${selected.size} usuario(s) seleccionados? Esta acción no se puede deshacer.`}
+        confirmLabel={bulkActing ? 'Eliminando...' : 'Eliminar'}
+        dangerous
+        onConfirm={() => handleBulkAction('delete')}
+        onCancel={() => setBulkDeleteConfirm(false)}
+      />
+    </div>
+  )
+}
+
+// ─── Plans Tab ────────────────────────────────────────────────────────────────
+
+function PlansTab() {
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [featuresInput, setFeaturesInput] = useState('')
+  const [isDefault, setIsDefault] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null)
+
+  const fetchPlans = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await adminApi.listPlans()
+      setPlans(r.data)
+    } catch {
+      toast.error('Error al cargar planes')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchPlans() }, [fetchPlans])
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setCreating(true)
+    try {
+      const features = featuresInput.split(',').map((f) => f.trim()).filter(Boolean)
+      await adminApi.createPlan({ name, description, features, isDefault })
+      toast.success('Plan creado')
+      setShowForm(false)
+      setName(''); setDescription(''); setFeaturesInput(''); setIsDefault(false)
+      fetchPlans()
+    } catch (err: any) {
+      toast.error(err.message || 'Error al crear plan')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleDelete(plan: Plan) {
+    try {
+      await adminApi.deletePlan(plan.id)
+      setPlans((prev) => prev.filter((p) => p.id !== plan.id))
+      toast.success('Plan eliminado')
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar')
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>{plans.length} plan(es) configurados</p>
+        <button
+          onClick={() => setShowForm((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+          style={{ background: 'var(--accent)', color: '#0b0d12' }}
+        >
+          <Plus size={14} />
+          Nuevo plan
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="rounded-2xl p-4 space-y-3"
+          style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Crear plan</p>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            placeholder="Nombre del plan (ej: Gratis, Pro)"
+            className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+            style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+          />
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Descripción (opcional)"
+            className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+            style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+          />
+          <div>
+            <input
+              value={featuresInput}
+              onChange={(e) => setFeaturesInput(e.target.value)}
+              placeholder="Features separadas por comas (ej: export_pdf, multiple_careers)"
+              className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+            />
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Claves de features separadas por coma</p>
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
+            <input
+              type="checkbox"
+              checked={isDefault}
+              onChange={(e) => setIsDefault(e.target.checked)}
+              className="rounded"
+            />
+            Plan por defecto (se asigna al registrarse)
+          </label>
+          <div className="flex gap-2 justify-end">
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 rounded-xl text-sm"
+              style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={creating}
+              className="px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-60"
+              style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              {creating ? 'Creando...' : 'Crear'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="py-10 flex justify-center">
+          <div className="w-6 h-6 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="py-10 text-center space-y-2">
+          <CreditCard size={32} className="mx-auto" style={{ color: 'var(--muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>No hay planes configurados</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {plans.map((plan) => (
+            <div key={plan.id} className="rounded-2xl p-4"
+              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{plan.name}</p>
+                    {plan.isDefault && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
+                        Por defecto
+                      </span>
+                    )}
+                    <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                      {plan._count.users} usuario(s)
+                    </span>
+                  </div>
+                  {plan.description && (
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{plan.description}</p>
+                  )}
+                  {plan.features.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {plan.features.map((f) => (
+                        <span key={f.id}
+                          className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
+                          style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                          <Tag size={10} />
+                          {f.featureKey}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setDeleteTarget(plan)}
+                  className="p-1.5 rounded-lg transition hover:opacity-70 flex-shrink-0"
+                  style={{ color: 'var(--danger)' }}
+                  title="Eliminar plan"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        message={`¿Eliminar el plan "${deleteTarget?.name}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        dangerous
+        onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
+    </div>
+  )
+}
+
+// ─── Pensums Tab ──────────────────────────────────────────────────────────────
+
+function PensumsTab() {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [careers, setCareers] = useState<CareerVersion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [preview, setPreview] = useState<ParsedPensum | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [showTemplate, setShowTemplate] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const fetchCareers = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await pensumApi.list()
+      setCareers(r.data)
+    } catch { toast.error('Error al cargar pensums') }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchCareers() }, [fetchCareers])
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPreviewing(true)
+    setPreview(null)
+    try {
+      const r = await pensumApi.preview(file)
+      setPreview(r.data)
+    } catch (err: any) {
+      toast.error(err.message || 'Error al leer el archivo')
+    } finally {
+      setPreviewing(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  async function handleImport() {
+    if (!preview) return
+    setImporting(true)
+    try {
+      await pensumApi.import(preview)
+      toast.success('Pensum importado correctamente')
+      setPreview(null)
+      fetchCareers()
+    } catch (err: any) {
+      toast.error(err.message || 'Error al importar')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  async function handleToggleActive(career: CareerVersion) {
+    try {
+      await pensumApi.toggleActive(career.id, !career.isActive)
+      setCareers((prev) => prev.map((c) => c.id === career.id ? { ...c, isActive: !c.isActive } : c))
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    }
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(PENSUM_TEMPLATE)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const periodLabel = (type: string) => PERIOD_LABELS[type] ?? type
+
+  return (
+    <div className="space-y-5">
+      {/* Upload */}
+      <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+        <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Importar pensum</p>
+        <p className="text-xs" style={{ color: 'var(--muted)' }}>Sube un archivo <code>.md</code> o <code>.txt</code> con el formato definido</p>
+        <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer w-fit text-sm font-semibold transition-opacity hover:opacity-80"
+          style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          <Upload size={15} />
+          {previewing ? 'Leyendo...' : 'Seleccionar archivo'}
+          <input ref={fileRef} type="file" accept=".md,.txt" className="hidden" onChange={handleFile} disabled={previewing} />
+        </label>
+      </div>
+
+      {/* Preview */}
+      {preview && (
+        <div className="rounded-2xl p-4 space-y-4" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Vista previa</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>Revisa antes de confirmar la importación</p>
+            </div>
+            <button onClick={() => setPreview(null)} className="text-xs px-2 py-1 rounded-lg" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+              Cancelar
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              { label: 'Universidad', value: preview.university },
+              { label: 'Carrera', value: preview.career },
+              { label: 'Año', value: preview.year },
+              { label: 'Tipo de período', value: periodLabel(preview.periodType) },
+              { label: 'Créditos totales', value: preview.totalCredits },
+              { label: `${periodLabel(preview.periodType)}s`, value: preview.durationSemesters },
+              { label: 'Materias detectadas', value: preview.subjects.length },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-xl p-3" style={{ background: 'var(--surface2)' }}>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>{label}</p>
+                <p className="text-sm font-semibold mt-0.5 truncate" style={{ color: 'var(--text)' }}>{value}</p>
+              </div>
+            ))}
+          </div>
+
+          {preview.warnings.length > 0 && (
+            <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+              <p className="text-xs font-semibold flex items-center gap-1" style={{ color: '#fbbf24' }}>
+                <AlertTriangle size={13} /> {preview.warnings.length} advertencia(s)
+              </p>
+              {preview.warnings.map((w, i) => (
+                <p key={i} className="text-xs" style={{ color: '#fbbf24' }}>• {w}</p>
+              ))}
+            </div>
+          )}
+
+          <button onClick={handleImport} disabled={importing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 transition-opacity hover:opacity-80"
+            style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+            <CheckCircle size={15} />
+            {importing ? 'Importando...' : 'Confirmar importación'}
+          </button>
+        </div>
+      )}
+
+      {/* Imported careers list */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--pt-border)' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            Pensums importados <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>({careers.length})</span>
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="py-10 flex justify-center">
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+          </div>
+        ) : careers.length === 0 ? (
+          <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay pensums importados aún</p>
+        ) : (
+          <div className="divide-y" style={{ borderColor: 'var(--pt-border)' }}>
+            {careers.map((career) => (
+              <div key={career.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{career.name}</p>
+                    {career.year && (
+                      <span className="text-xs px-2 py-0.5 rounded-full shrink-0"
+                        style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                        {career.year}
+                      </span>
+                    )}
+                    {career.isActive ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
+                        style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
+                        Activo
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full shrink-0"
+                        style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
+                        Inactivo
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                    {career.university.name} · {periodLabel(career.periodType)} · {career._count.subjects} materias · {career._count.profiles} estudiantes
+                  </p>
+                </div>
+                <button onClick={() => handleToggleActive(career)}
+                  title={career.isActive ? 'Desactivar' : 'Activar'}
+                  className="p-1.5 rounded-lg transition hover:opacity-70 shrink-0"
+                  style={{ color: career.isActive ? 'var(--accent)' : 'var(--muted)' }}>
+                  {career.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Format reference */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+        <button
+          onClick={() => setShowTemplate((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold transition-opacity hover:opacity-70"
+          style={{ color: 'var(--text)' }}>
+          <span>Formato de referencia (.md / .txt)</span>
+          {showTemplate ? <EyeOff size={15} style={{ color: 'var(--muted)' }} /> : <Eye size={15} style={{ color: 'var(--muted)' }} />}
+        </button>
+
+        {showTemplate && (
+          <div style={{ borderTop: '1px solid var(--pt-border)' }}>
+            <div className="flex justify-end px-4 py-2" style={{ borderBottom: '1px solid var(--pt-border)' }}>
+              <button onClick={handleCopy}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-70"
+                style={{ background: 'var(--surface2)', color: copied ? 'var(--accent)' : 'var(--muted)' }}>
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+                {copied ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
+            <pre className="p-4 text-xs overflow-x-auto" style={{ color: 'var(--muted)', fontFamily: 'monospace' }}>
+              {PENSUM_TEMPLATE}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Requests Tab ─────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<PensumRequestStatus, { label: string; color: string; bg: string }> = {
+  PENDING:   { label: 'Pendiente',   color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
+  IN_REVIEW: { label: 'En revisión', color: 'var(--accent2)', bg: 'rgba(56,189,248,0.1)' },
+  COMPLETED: { label: 'Completado',  color: 'var(--accent)',  bg: 'rgba(16,185,129,0.1)' },
+  REJECTED:  { label: 'Rechazado',   color: 'var(--danger)',  bg: 'rgba(248,113,113,0.1)' },
+}
+
+const NEXT_STATUS: Record<PensumRequestStatus, PensumRequestStatus | null> = {
+  PENDING:   'IN_REVIEW',
+  IN_REVIEW: 'COMPLETED',
+  COMPLETED: null,
+  REJECTED:  null,
+}
+
+function RequestsTab() {
+  const [requests, setRequests] = useState<PensumRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<PensumRequestStatus | 'ALL'>('ALL')
+
+  const fetchRequests = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await pensumRequestsApi.listAdmin()
+      setRequests(r.data)
+    } catch { toast.error('Error al cargar solicitudes') }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchRequests() }, [fetchRequests])
+
+  async function handleStatus(req: PensumRequest, status: PensumRequestStatus) {
+    try {
+      await pensumRequestsApi.updateStatus(req.id, status)
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r))
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    }
+  }
+
+  const filtered = filter === 'ALL' ? requests : requests.filter((r) => r.status === filter)
+  const pendingCount = requests.filter((r) => r.status === 'PENDING').length
+
+  return (
+    <div className="space-y-4">
+      {/* Filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {(['ALL', 'PENDING', 'IN_REVIEW', 'COMPLETED', 'REJECTED'] as const).map((s) => (
+          <button key={s} onClick={() => setFilter(s)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{
+              background: filter === s ? (s === 'ALL' ? 'var(--accent)' : STATUS_CONFIG[s as PensumRequestStatus]?.bg ?? 'var(--accent)') : 'var(--surface)',
+              color: filter === s ? (s === 'ALL' ? '#0b0d12' : STATUS_CONFIG[s as PensumRequestStatus]?.color ?? '#0b0d12') : 'var(--muted)',
+              border: '1px solid var(--pt-border)',
+            }}>
+            {s === 'ALL' ? `Todas (${requests.length})` : `${STATUS_CONFIG[s].label}${s === 'PENDING' && pendingCount > 0 ? ` (${pendingCount})` : ''}`}
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+        {loading ? (
+          <div className="py-10 flex justify-center">
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay solicitudes</p>
+        ) : (
+          <div className="divide-y" style={{ borderColor: 'var(--pt-border)' }}>
+            {filtered.map((req) => {
+              const cfg = STATUS_CONFIG[req.status]
+              const next = NEXT_STATUS[req.status]
+              return (
+                <div key={req.id} className="px-4 py-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{req.career}</p>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: cfg.bg, color: cfg.color }}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                        {req.university}{req.year ? ` · ${req.year}` : ''} · {req.periodType === 'semester' ? 'Semestral' : req.periodType === 'quarter' ? 'Cuatrimestral' : 'Trimestral'}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                        Solicitado por {req.user.displayName}{req.user.username ? ` (@${req.user.username})` : ''} · {new Date(req.createdAt).toLocaleDateString('es-DO')}
+                      </p>
+                    </div>
+                    {next && (
+                      <button onClick={() => handleStatus(req, next)}
+                        className="text-xs px-3 py-1.5 rounded-lg font-medium shrink-0 transition-opacity hover:opacity-70"
+                        style={{ background: STATUS_CONFIG[next].bg, color: STATUS_CONFIG[next].color, border: `1px solid ${STATUS_CONFIG[next].color}33` }}>
+                        → {STATUS_CONFIG[next].label}
+                      </button>
+                    )}
+                    {req.status === 'IN_REVIEW' && (
+                      <button onClick={() => handleStatus(req, 'REJECTED')}
+                        className="text-xs px-3 py-1.5 rounded-lg font-medium shrink-0 transition-opacity hover:opacity-70"
+                        style={{ background: STATUS_CONFIG.REJECTED.bg, color: STATUS_CONFIG.REJECTED.color }}>
+                        Rechazar
+                      </button>
+                    )}
+                  </div>
+                  {req.link && (
+                    <a href={req.link} target="_blank" rel="noopener noreferrer"
+                      className="text-xs underline break-all" style={{ color: 'var(--accent2)' }}>
+                      {req.link}
+                    </a>
+                  )}
+                  {req.comment && (
+                    <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                      {req.comment}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

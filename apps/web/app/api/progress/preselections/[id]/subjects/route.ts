@@ -25,17 +25,13 @@ export async function PUT(
 
     const { subjectCodes } = result.data
 
-    const profile = await prisma.studentProfile.findFirst({ where: { userId, isActive: true } })
+    const profile = await prisma.studentProfile.findFirst({ where: { userId } })
     if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
 
     const preselection = await prisma.preselection.findFirst({
       where: { id, profileId: profile.id },
     })
     if (!preselection) return NextResponse.json({ error: 'Período no encontrado' }, { status: 404 })
-
-    if (preselection.status !== 'OPEN') {
-      return NextResponse.json({ error: 'Solo puedes editar materias en períodos abiertos' }, { status: 409 })
-    }
 
     const updated = await prisma.preselection.update({
       where: { id },

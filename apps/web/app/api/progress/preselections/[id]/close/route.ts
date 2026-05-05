@@ -29,7 +29,7 @@ export async function PUT(
 
     const { results } = result.data
 
-    const profile = await prisma.studentProfile.findFirst({ where: { userId, isActive: true } })
+    const profile = await prisma.studentProfile.findFirst({ where: { userId } })
     if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
 
     const preselection = await prisma.preselection.findFirst({
@@ -37,20 +37,15 @@ export async function PUT(
     })
     if (!preselection) return NextResponse.json({ error: 'Período no encontrado' }, { status: 404 })
 
-    if (preselection.status !== 'CONFIRMED') {
-      return NextResponse.json({ error: 'Solo puedes cerrar períodos confirmados' }, { status: 409 })
-    }
+    const periodLabel = preselection.period ?? undefined
 
     const txResults = await prisma.$transaction([
-      prisma.preselection.update({
-        where: { id },
-        data: { status: 'CLOSED' },
-      }),
+      prisma.preselection.delete({ where: { id } }),
       ...results.map(({ subjectCode, status, grade }) =>
         prisma.studentSubject.upsert({
           where: { profileId_subjectCode: { profileId: profile.id, subjectCode } },
-          create: { profileId: profile.id, subjectCode, careerId: profile.careerId, status, grade: grade ?? null, period: preselection.label },
-          update: { status, grade: grade ?? null },
+          create: { profileId: profile.id, subjectCode, status, grade: grade ?? null, period: periodLabel },
+          update: { status, grade: grade ?? null, period: periodLabel },
         }),
       ),
     ])

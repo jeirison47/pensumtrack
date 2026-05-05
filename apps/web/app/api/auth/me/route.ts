@@ -8,12 +8,25 @@ export async function GET(request: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      id: true, email: true, displayName: true, isAdmin: true, createdAt: true,
-      profiles: { where: { isActive: true }, select: { id: true, careerId: true, currentSemester: true }, take: 1 },
+    include: {
+      plan: { select: { name: true, features: { select: { featureKey: true } } } },
+      profiles: { select: { id: true, careerId: true, currentSemester: true }, take: 1, orderBy: { createdAt: 'asc' } },
     },
   })
 
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-  return NextResponse.json({ data: user })
+
+  return NextResponse.json({
+    data: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      displayName: user.displayName,
+      isAdmin: user.isAdmin,
+      createdAt: user.createdAt,
+      planName: user.plan?.name ?? null,
+      planFeatures: user.plan?.features.map((f) => f.featureKey) ?? [],
+      settings: user.profiles[0] ?? null,
+    },
+  })
 }

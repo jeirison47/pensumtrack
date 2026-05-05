@@ -5,8 +5,8 @@ import { prisma } from '@/lib/db'
 
 const schema = z.object({
   label: z.string().min(1, 'El nombre del período es requerido'),
-  startDate: z.string().min(1),
-  endDate: z.string().min(1),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -20,29 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
-    const { label, startDate, endDate } = result.data
+    const { label } = result.data
 
-    const profile = await prisma.studentProfile.findFirst({ where: { userId, isActive: true } })
+    const profile = await prisma.studentProfile.findFirst({ where: { userId } })
     if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
-
-    // Solo 1 período activo (OPEN o CONFIRMED) a la vez
-    const active = await prisma.preselection.findFirst({
-      where: { profileId: profile.id, status: { in: ['OPEN', 'CONFIRMED'] } },
-    })
-    if (active) {
-      return NextResponse.json(
-        { error: 'Ya tienes un período activo. Ciérralo antes de crear uno nuevo.' },
-        { status: 409 },
-      )
-    }
 
     const preselection = await prisma.preselection.create({
       data: {
         profileId: profile.id,
-        label,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        status: 'OPEN',
+        period: label,
         subjects: [],
       },
     })

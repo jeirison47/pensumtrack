@@ -12,16 +12,40 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
+  username     String?  @unique
   passwordHash String?
   displayName  String
   auth0Id      String?  @unique
   authProvider String   @default("local")
   isActive     Boolean  @default(true)
   isAdmin      Boolean  @default(false)
+  planId       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   settings StudentProfile?
+  plan     Plan?           @relation(fields: [planId], references: [id])
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  features PlanFeature[]
+  users    User[]
+}
+
+model PlanFeature {
+  id         String @id @default(cuid())
+  planId     String
+  featureKey String
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureKey])
 }
 
 model University {
@@ -97,7 +121,7 @@ model StudentSubject {
 model Preselection {
   id        String   @id @default(cuid())
   profileId String
-  period    String
+  period    String?
   subjects  String[] // códigos de materias preseleccionadas
   updatedAt DateTime @updatedAt
 
