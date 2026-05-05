@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, Plus, Trash2, CreditCard, Tag, KeyRound,
   Upload, Eye, EyeOff, CheckCircle, AlertTriangle, ToggleLeft, ToggleRight, Copy, Check,
 } from 'lucide-react'
-import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus } from '@/services/api'
+import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus, type UniversityAdmin, type CareerAdmin } from '@/services/api'
 import { PENSUM_TEMPLATE, PERIOD_LABELS } from '@/lib/parsePensum'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import toast from 'react-hot-toast'
@@ -22,9 +22,12 @@ type AdminUser = {
   plan?: { id: string; name: string } | null
 }
 
-type Tab = 'usuarios' | 'planes' | 'pensums' | 'solicitudes'
+type Tab = 'usuarios' | 'planes' | 'pensums' | 'solicitudes' | 'universidades' | 'carreras'
 
-const TAB_LABELS: Record<Tab, string> = { usuarios: 'Usuarios', planes: 'Planes', pensums: 'Pensums', solicitudes: 'Solicitudes' }
+const TAB_LABELS: Record<Tab, string> = {
+  usuarios: 'Usuarios', planes: 'Planes', pensums: 'Pensums',
+  solicitudes: 'Solicitudes', universidades: 'Universidades', carreras: 'Carreras',
+}
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('usuarios')
@@ -35,8 +38,8 @@ export default function AdminPage() {
         Panel de administración
       </h1>
 
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--surface2)' }}>
-        {(['usuarios', 'planes', 'pensums', 'solicitudes'] as Tab[]).map((t) => (
+      <div className="flex gap-1 p-1 rounded-xl flex-wrap" style={{ background: 'var(--surface2)' }}>
+        {(['usuarios', 'planes', 'pensums', 'solicitudes', 'universidades', 'carreras'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -55,6 +58,8 @@ export default function AdminPage() {
       {tab === 'planes' && <PlansTab />}
       {tab === 'pensums' && <PensumsTab />}
       {tab === 'solicitudes' && <RequestsTab />}
+      {tab === 'universidades' && <UniversidadesTab />}
+      {tab === 'carreras' && <CarrerasTab />}
     </div>
   )
 }
@@ -898,6 +903,398 @@ function PensumsTab() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Universidades Tab ────────────────────────────────────────────────────────
+
+function UniversidadesTab() {
+  const [universities, setUniversities] = useState<UniversityAdmin[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editTarget, setEditTarget] = useState<UniversityAdmin | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<UniversityAdmin | null>(null)
+  const [form, setForm] = useState({ name: '', shortName: '', country: 'DO', logoUrl: '' })
+  const [saving, setSaving] = useState(false)
+
+  const fetchUniversities = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await adminApi.listUniversities()
+      setUniversities(r.data)
+    } catch { toast.error('Error al cargar universidades') }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchUniversities() }, [fetchUniversities])
+
+  function openCreate() {
+    setEditTarget(null)
+    setForm({ name: '', shortName: '', country: 'DO', logoUrl: '' })
+    setShowForm(true)
+  }
+
+  function openEdit(u: UniversityAdmin) {
+    setEditTarget(u)
+    setForm({ name: u.name, shortName: u.shortName, country: u.country, logoUrl: u.logoUrl ?? '' })
+    setShowForm(true)
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const payload = { ...form, logoUrl: form.logoUrl.trim() || null }
+      if (editTarget) {
+        const r = await adminApi.updateUniversity(editTarget.id, payload)
+        setUniversities((prev) => prev.map((u) => u.id === editTarget.id ? r.data : u))
+        toast.success('Universidad actualizada')
+      } else {
+        const r = await adminApi.createUniversity(payload)
+        setUniversities((prev) => [...prev, r.data])
+        toast.success('Universidad creada')
+      }
+      setShowForm(false)
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleToggleActive(u: UniversityAdmin) {
+    try {
+      await adminApi.updateUniversity(u.id, { isActive: !u.isActive })
+      setUniversities((prev) => prev.map((x) => x.id === u.id ? { ...x, isActive: !x.isActive } : x))
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    try {
+      await adminApi.deleteUniversity(deleteTarget.id)
+      setUniversities((prev) => prev.filter((u) => u.id !== deleteTarget.id))
+      toast.success('Universidad eliminada')
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar')
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>{universities.length} universidad(es)</p>
+        <button onClick={openCreate}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+          style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          <Plus size={14} /> Nueva
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSave} className="rounded-2xl p-4 space-y-3"
+          style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            {editTarget ? 'Editar universidad' : 'Nueva universidad'}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Nombre completo *</label>
+              <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: Universidad APEC"
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Nombre corto *</label>
+              <input required value={form.shortName} onChange={(e) => setForm((f) => ({ ...f, shortName: e.target.value }))}
+                placeholder="Ej: UNAPEC"
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>País</label>
+              <input value={form.country} onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+                placeholder="DO"
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>URL del logo</label>
+              <input value={form.logoUrl} onChange={(e) => setForm((f) => ({ ...f, logoUrl: e.target.value }))}
+                placeholder="https://..."
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 rounded-xl text-sm"
+              style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-60"
+              style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              {saving ? 'Guardando...' : (editTarget ? 'Guardar cambios' : 'Crear')}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="py-10 flex justify-center">
+          <div className="w-6 h-6 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+        </div>
+      ) : universities.length === 0 ? (
+        <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay universidades registradas</p>
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <div className="divide-y" style={{ borderColor: 'var(--pt-border)' }}>
+            {universities.map((u) => (
+              <div key={u.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{u.name}</p>
+                    <span className="text-xs px-1.5 py-0.5 rounded font-mono"
+                      style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                      {u.shortName}
+                    </span>
+                    {!u.isActive && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
+                        Inactiva
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                    {u.country} · {u._count.careers} carrera(s)
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => openEdit(u)} title="Editar"
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: 'var(--muted)' }}>
+                    <BookOpen size={15} />
+                  </button>
+                  <button onClick={() => handleToggleActive(u)}
+                    title={u.isActive ? 'Desactivar' : 'Activar'}
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: u.isActive ? 'var(--accent)' : 'var(--muted)' }}>
+                    {u.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                  </button>
+                  <button onClick={() => setDeleteTarget(u)} title="Eliminar"
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: 'var(--danger)' }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        message={`¿Eliminar "${deleteTarget?.name}"? Solo es posible si no tiene carreras asociadas.`}
+        confirmLabel="Eliminar"
+        dangerous
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+    </div>
+  )
+}
+
+// ─── Carreras Tab ─────────────────────────────────────────────────────────────
+
+function CarrerasTab() {
+  const [careers, setCareers] = useState<CareerAdmin[]>([])
+  const [universities, setUniversities] = useState<UniversityAdmin[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<CareerAdmin | null>(null)
+  const [form, setForm] = useState({ name: '', universityId: '' })
+  const [saving, setSaving] = useState(false)
+  const [filterUni, setFilterUni] = useState('')
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [cR, uR] = await Promise.all([adminApi.listCareers(), adminApi.listUniversities()])
+      setCareers(cR.data)
+      setUniversities(uR.data)
+      if (!form.universityId && uR.data.length > 0) {
+        setForm((f) => ({ ...f, universityId: uR.data[0].id }))
+      }
+    } catch { toast.error('Error al cargar datos') }
+    finally { setLoading(false) }
+  }, [])  // eslint-disable-line
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const r = await adminApi.createCareer(form)
+      setCareers((prev) => [...prev, r.data])
+      toast.success('Carrera creada')
+      setShowForm(false)
+      setForm((f) => ({ ...f, name: '' }))
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleToggleActive(c: CareerAdmin) {
+    try {
+      await adminApi.updateCareer(c.id, { isActive: !c.isActive })
+      setCareers((prev) => prev.map((x) => x.id === c.id ? { ...x, isActive: !x.isActive } : x))
+    } catch (err: any) {
+      toast.error(err.message || 'Error')
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    try {
+      await adminApi.deleteCareer(deleteTarget.id)
+      setCareers((prev) => prev.filter((c) => c.id !== deleteTarget.id))
+      toast.success('Carrera eliminada')
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar')
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
+  const filtered = filterUni ? careers.filter((c) => c.universityId === filterUni) : careers
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <select
+          value={filterUni}
+          onChange={(e) => setFilterUni(e.target.value)}
+          className="text-sm rounded-xl px-3 py-2 outline-none flex-1 min-w-0 max-w-xs"
+          style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>
+          <option value="">Todas las universidades</option>
+          {universities.map((u) => (
+            <option key={u.id} value={u.id}>{u.shortName} — {u.name}</option>
+          ))}
+        </select>
+        <button onClick={() => setShowForm((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 flex-shrink-0"
+          style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          <Plus size={14} /> Nueva
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSave} className="rounded-2xl p-4 space-y-3"
+          style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Nueva carrera</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Nombre *</label>
+              <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: Ingeniería en Sistemas"
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+            </div>
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Universidad *</label>
+              <select required value={form.universityId} onChange={(e) => setForm((f) => ({ ...f, universityId: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>
+                <option value="">Selecciona...</option>
+                {universities.map((u) => (
+                  <option key={u.id} value={u.id}>{u.shortName} — {u.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 rounded-xl text-sm"
+              style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-60"
+              style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              {saving ? 'Guardando...' : 'Crear'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="py-10 flex justify-center">
+          <div className="w-6 h-6 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay carreras</p>
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <div className="px-4 py-2.5" style={{ borderBottom: '1px solid var(--pt-border)' }}>
+            <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>{filtered.length} carrera(s)</p>
+          </div>
+          <div className="divide-y" style={{ borderColor: 'var(--pt-border)' }}>
+            {filtered.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{c.name}</p>
+                    {!c.isActive && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
+                        Inactiva
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                    {c.university.shortName} · {c._count.pensums} pensum(s) · {c._count.profiles} estudiante(s)
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => handleToggleActive(c)}
+                    title={c.isActive ? 'Desactivar' : 'Activar'}
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: c.isActive ? 'var(--accent)' : 'var(--muted)' }}>
+                    {c.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                  </button>
+                  <button onClick={() => setDeleteTarget(c)} title="Eliminar"
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: 'var(--danger)' }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        message={`¿Eliminar "${deleteTarget?.name}"? Solo es posible si no tiene pensums asociados.`}
+        confirmLabel="Eliminar"
+        dangerous
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
