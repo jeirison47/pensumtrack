@@ -22,21 +22,21 @@ export function useProgress() {
   const invalidateProgress = () =>
     queryClient.invalidateQueries({ queryKey: ['progress'] })
 
-  // Sincroniza el store para componentes que lo leen directamente (actualizaciones optimistas)
   useEffect(() => {
     if (data?.data !== undefined) setProfile(data.data)
   }, [data, setProfile])
 
-  // Deriva profile de la query directamente para evitar el render intermedio donde
-  // isLoading=false pero el store aún no se actualizó (causaba redirect incorrecto a /onboarding)
   const profile = data !== undefined ? data.data : storeProfile
 
-  // Unión de todos los periodos para mostrar estado "preselected" en pensum/mapa
   const preselectedCodes = profile?.preselections.flatMap((p) => p.subjects) ?? []
+
+  // Use pensum subjects when available (preferred), fall back to career subjects
+  const allSubjects: Subject[] = profile
+    ? (profile.pensum?.subjects ?? profile.career.subjects)
+    : []
 
   const getSubjectStatus = (subjectCode: string): SubjectStatus => {
     if (!profile) return 'pending'
-    const allSubjects: Subject[] = profile.career.subjects
     const subject = allSubjects.find((s) => s.code === subjectCode)
     if (!subject) return 'pending'
 
@@ -51,5 +51,5 @@ export function useProgress() {
     return calcSubjectStatus(subject, studentSubjects, preselectedCodes)
   }
 
-  return { profile, isLoading, refetch, getSubjectStatus, preselectedCodes, invalidateProgress }
+  return { profile, isLoading, refetch, getSubjectStatus, preselectedCodes, invalidateProgress, allSubjects }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle, XCircle, Lock, Clock, Star, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
@@ -87,6 +87,11 @@ export function SubjectModal({
 }: Props) {
   const [gradeInput, setGradeInput] = useState('')
   const [awaitingGrade, setAwaitingGrade] = useState(false)
+
+  useEffect(() => {
+    setGradeInput('')
+    setAwaitingGrade(false)
+  }, [subject?.code])
 
   if (!subject) return null
 

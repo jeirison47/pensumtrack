@@ -10,21 +10,22 @@ datasource db {
 }
 
 model User {
-  id           String           @id @default(cuid())
-  email        String           @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   passwordHash String?
   displayName  String
-  auth0Id      String?          @unique
-  authProvider String           @default("local")
-  isActive     Boolean          @default(true)
-  isAdmin      Boolean          @default(false)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  auth0Id      String?  @unique
+  authProvider String   @default("local")
+  isActive     Boolean  @default(true)
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   planId       String?
-  username     String?          @unique
-  profiles        StudentProfile[]
-  plan            Plan?           @relation(fields: [planId], references: [id])
-  pensumRequests  PensumRequest[]
+  username     String?  @unique
+
+  profiles       StudentProfile[]
+  plan           Plan?           @relation(fields: [planId], references: [id])
+  pensumRequests PensumRequest[]
 }
 
 model Plan {
@@ -54,22 +55,41 @@ model University {
   logoUrl   String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  careers   Career[]
+
+  careers Career[]
 }
 
 model Career {
-  id                String           @id @default(cuid())
+  id                String   @id @default(cuid())
   name              String
   universityId      String
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  // Legacy version fields — kept nullable during migration, moved to Pensum
+  totalCredits      Int?
+  durationSemesters Int?
+  periodType        String?
+  year              Int?
+
+  university University       @relation(fields: [universityId], references: [id])
+  subjects   Subject[]
+  profiles   StudentProfile[]
+  pensums    Pensum[]
+}
+
+model Pensum {
+  id                String   @id @default(cuid())
+  careerId          String
+  year              Int?
+  periodType        String   @default("semester")
   totalCredits      Int
   durationSemesters Int
-  periodType        String           @default("semester")
-  year              Int?
-  isActive          Boolean          @default(true)
-  createdAt         DateTime         @default(now())
-  university        University       @relation(fields: [universityId], references: [id])
-  profiles          StudentProfile[]
-  subjects          Subject[]
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  career   Career           @relation(fields: [careerId], references: [id])
+  subjects Subject[]
+  profiles StudentProfile[]
 }
 
 model Subject {
@@ -79,47 +99,60 @@ model Subject {
   semester      Int
   area          String?
   careerId      String
+  pensumId      String?
   prerequisites String[]
   corequisites  String[]
   createdAt     DateTime @default(now())
-  career        Career   @relation(fields: [careerId], references: [id])
+
+  career Career  @relation(fields: [careerId], references: [id])
+  pensum Pensum? @relation(fields: [pensumId], references: [id])
 
   @@id([code, careerId])
 }
 
 model StudentProfile {
-  id              String           @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String
   careerId        String
-  currentSemester Int              @default(1)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  preselections   Preselection[]
-  career          Career           @relation(fields: [careerId], references: [id])
-  user            User             @relation(fields: [userId], references: [id])
-  subjects        StudentSubject[]
+  pensumId        String?
+  currentSemester Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User             @relation(fields: [userId], references: [id])
+  career        Career           @relation(fields: [careerId], references: [id])
+  pensum        Pensum?          @relation(fields: [pensumId], references: [id])
+  subjects      StudentSubject[]
+  preselections Preselection[]
 }
 
 model StudentSubject {
-  id          String         @id @default(cuid())
+  id          String        @id @default(cuid())
   profileId   String
   subjectCode String
-  status      SubjectStatus  @default(PENDING)
+  status      SubjectStatus @default(PENDING)
   grade       Float?
   period      String?
-  updatedAt   DateTime       @updatedAt
-  profile     StudentProfile @relation(fields: [profileId], references: [id])
+  updatedAt   DateTime      @updatedAt
+
+  profile StudentProfile @relation(fields: [profileId], references: [id])
 
   @@unique([profileId, subjectCode])
 }
 
 model Preselection {
-  id        String         @id @default(cuid())
+  id        String             @id @default(cuid())
   profileId String
-  subjects  String[]
-  updatedAt DateTime       @updatedAt
   period    String?
-  profile   StudentProfile @relation(fields: [profileId], references: [id])
+  label     String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    PreselectionStatus @default(OPEN)
+  subjects  String[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  profile StudentProfile @relation(fields: [profileId], references: [id])
 }
 
 enum PreselectionStatus {

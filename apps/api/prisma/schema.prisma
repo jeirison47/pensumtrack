@@ -51,7 +51,7 @@ model PlanFeature {
 model University {
   id        String   @id @default(cuid())
   name      String
-  shortName String   // Ej: ITLA, UASD, PUCMM
+  shortName String
   country   String   @default("DO")
   logoUrl   String?
   isActive  Boolean  @default(true)
@@ -61,73 +61,105 @@ model University {
 }
 
 model Career {
-  id                String    @id @default(cuid())
+  id                String   @id @default(cuid())
   name              String
   universityId      String
-  totalCredits      Int
-  durationSemesters Int
-  isActive          Boolean   @default(true)
-  createdAt         DateTime  @default(now())
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  // Legacy version fields — kept nullable during migration, moved to Pensum
+  totalCredits      Int?
+  durationSemesters Int?
+  periodType        String?
+  year              Int?
 
   university University       @relation(fields: [universityId], references: [id])
   subjects   Subject[]
   profiles   StudentProfile[]
+  pensums    Pensum[]
+}
+
+model Pensum {
+  id                String   @id @default(cuid())
+  careerId          String
+  year              Int?
+  periodType        String   @default("semester")
+  totalCredits      Int
+  durationSemesters Int
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  career   Career           @relation(fields: [careerId], references: [id])
+  subjects Subject[]
+  profiles StudentProfile[]
 }
 
 model Subject {
-  code          String   @id
+  code          String
   name          String
   credits       Int
   semester      Int
   area          String?
   careerId      String
-  prerequisites String[] // códigos de materias requeridas
-  corequisites  String[] // códigos de materias simultáneas
+  pensumId      String?
+  prerequisites String[]
+  corequisites  String[]
   createdAt     DateTime @default(now())
 
-  career          Career           @relation(fields: [careerId], references: [id])
-  studentSubjects StudentSubject[]
+  career Career  @relation(fields: [careerId], references: [id])
+  pensum Pensum? @relation(fields: [pensumId], references: [id])
+
+  @@id([code, careerId])
 }
 
 model StudentProfile {
   id              String   @id @default(cuid())
   userId          String   @unique
   careerId        String
+  pensumId        String?
   currentSemester Int      @default(1)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   user          User             @relation(fields: [userId], references: [id])
   career        Career           @relation(fields: [careerId], references: [id])
+  pensum        Pensum?          @relation(fields: [pensumId], references: [id])
   subjects      StudentSubject[]
   preselections Preselection[]
 }
 
 model StudentSubject {
-  id         String        @id @default(cuid())
-  profileId  String
+  id          String        @id @default(cuid())
+  profileId   String
   subjectCode String
-  status     SubjectStatus @default(PENDING)
-  grade      Float?
-  period     String?
-  updatedAt  DateTime      @updatedAt
+  status      SubjectStatus @default(PENDING)
+  grade       Float?
+  period      String?
+  updatedAt   DateTime      @updatedAt
 
-  subject Subject        @relation(fields: [subjectCode], references: [code])
   profile StudentProfile @relation(fields: [profileId], references: [id])
 
   @@unique([profileId, subjectCode])
 }
 
 model Preselection {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   profileId String
   period    String?
-  subjects  String[] // códigos de materias preseleccionadas
-  updatedAt DateTime @updatedAt
+  label     String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    PreselectionStatus @default(OPEN)
+  subjects  String[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   profile StudentProfile @relation(fields: [profileId], references: [id])
+}
 
-  @@unique([profileId, period])
+enum PreselectionStatus {
+  OPEN
+  CONFIRMED
+  CLOSED
 }
 
 enum SubjectStatus {

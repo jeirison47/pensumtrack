@@ -41,14 +41,14 @@ const FILTERS: { key: Filter; label: string }[] = [
 ]
 
 export default function PensumPage() {
-  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress } = useProgress()
+  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress, allSubjects: subjects } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [selected, setSelected]     = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('pending')
 
-  const allSubjects = profile?.career.subjects ?? []
+  const allSubjects = subjects
 
   const filtered = useMemo(() =>
     allSubjects.filter((s) => {

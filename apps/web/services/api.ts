@@ -61,10 +61,10 @@ export const progressApi = {
 
   profiles: () => request<{ data: ProfileSummary[] }>('/progress/profiles'),
 
-  addCareer: (careerId: string, currentSemester: number) =>
+  addCareer: (careerId: string, currentSemester: number, pensumId?: string) =>
     request<{ data: StudentProfileFull }>('/progress/profile', {
       method: 'POST',
-      body: JSON.stringify({ careerId, currentSemester }),
+      body: JSON.stringify({ careerId, currentSemester, pensumId }),
     }),
 
   switchCareer: (profileId: string) =>
@@ -158,6 +158,35 @@ export const adminApi = {
     }),
   deletePlan: (id: string) =>
     request<{ data: { id: string } }>(`/admin/plans/${id}`, { method: 'DELETE' }),
+  // Universities
+  listUniversities: () => request<{ data: UniversityAdmin[] }>('/admin/universities'),
+  createUniversity: (data: { name: string; shortName: string; country?: string; logoUrl?: string | null }) =>
+    request<{ data: UniversityAdmin }>('/admin/universities', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateUniversity: (id: string, data: { name?: string; shortName?: string; country?: string; logoUrl?: string | null; isActive?: boolean }) =>
+    request<{ data: UniversityAdmin }>(`/admin/universities/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteUniversity: (id: string) =>
+    request<{ data: { id: string } }>(`/admin/universities/${id}`, { method: 'DELETE' }),
+  // Careers
+  listCareers: (universityId?: string) =>
+    request<{ data: CareerAdmin[] }>(`/admin/careers${universityId ? `?universityId=${universityId}` : ''}`),
+  createCareer: (data: { name: string; universityId: string }) =>
+    request<{ data: CareerAdmin }>('/admin/careers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateCareer: (id: string, data: { name?: string; universityId?: string; isActive?: boolean }) =>
+    request<{ data: CareerAdmin }>(`/admin/careers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteCareer: (id: string) =>
+    request<{ data: { id: string } }>(`/admin/careers/${id}`, { method: 'DELETE' }),
 }
 
 export const pensumApi = {
@@ -257,12 +286,35 @@ export interface UniversityWithCareers extends Omit<UniversitySummary, '_count'>
   }>
 }
 
+export interface UniversityAdmin {
+  id: string
+  name: string
+  shortName: string
+  country: string
+  logoUrl: string | null
+  isActive: boolean
+  createdAt: string
+  _count: { careers: number }
+}
+
+export interface CareerAdmin {
+  id: string
+  name: string
+  universityId: string
+  isActive: boolean
+  createdAt: string
+  university: { id: string; name: string; shortName: string }
+  _count: { pensums: number; profiles: number }
+}
+
 export interface CareerSummary {
   id: string
   name: string
   university: { id: string; name: string; shortName: string; logoUrl: string | null }
   totalCredits: number
   durationSemesters: number
+  year?: number | null
+  activePensumId?: string | null
 }
 
 export interface Subject {
@@ -276,6 +328,7 @@ export interface Subject {
 }
 
 export interface CareerWithSubjects extends CareerSummary {
+  year?: number | null
   subjects: Subject[]
 }
 
@@ -294,8 +347,8 @@ export type PreselectionStatus = 'OPEN' | 'CONFIRMED' | 'CLOSED'
 export interface PreselectionDB {
   id: string
   label: string
-  startDate: string
-  endDate: string
+  startDate: string | null
+  endDate: string | null
   status: PreselectionStatus
   subjects: string[]
   createdAt: string
@@ -304,8 +357,9 @@ export interface PreselectionDB {
 export interface ProfileSummary {
   id: string
   careerId: string
+  pensumId: string | null
   currentSemester: number
-  isActive: boolean
+  isActive?: boolean
   career: {
     id: string
     name: string
@@ -315,12 +369,26 @@ export interface ProfileSummary {
   }
 }
 
+export interface PensumSummary {
+  id: string
+  year: number | null
+  periodType: string
+  totalCredits: number
+  durationSemesters: number
+  isActive: boolean
+  subjects: Subject[]
+}
+
 export interface StudentProfileFull {
   id: string
   userId: string
   careerId: string
+  pensumId: string | null
   currentSemester: number
-  career: CareerWithSubjects
+  career: CareerWithSubjects & {
+    university: { id: string; name: string; shortName: string; logoUrl: string | null }
+  }
+  pensum: PensumSummary | null
   subjects: StudentSubjectDB[]
   preselections: PreselectionDB[]
 }
@@ -370,6 +438,7 @@ export interface CareerVersion {
   durationSemesters: number
   isActive: boolean
   createdAt: string
+  careerId?: string
   university: { id: string; name: string; shortName: string }
   _count: { subjects: number; profiles: number }
 }

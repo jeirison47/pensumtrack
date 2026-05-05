@@ -33,7 +33,7 @@ function statusBadge(status: PreselectionDB['status']) {
 // ─── Página principal ──────────────────────────────────────────────────────────
 
 export default function PreseleccionPage() {
-  const { profile, isLoading, getSubjectStatus, invalidateProgress } = useProgress()
+  const { profile, isLoading, getSubjectStatus, invalidateProgress, allSubjects: hookSubjects } = useProgress()
   const {
     updatePreselectionSubjectsLocally,
     addPreselectionLocally,
@@ -83,7 +83,7 @@ export default function PreseleccionPage() {
 
   // ─── Datos derivados ───────────────────────────────────────────────────────
 
-  const allSubjects = profile?.career.subjects ?? []
+  const allSubjects = hookSubjects
   const hasActive = preselections.some((p) => p.status === 'OPEN' || p.status === 'CONFIRMED')
 
   const availableSubjects = useMemo(() =>
@@ -331,9 +331,9 @@ export default function PreseleccionPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                        {new Date(current.startDate).toLocaleDateString('es', { month: 'long', year: 'numeric' })}
-                        {' – '}
-                        {new Date(current.endDate).toLocaleDateString('es', { month: 'long', year: 'numeric' })}
+                        {current.startDate ? new Date(current.startDate).toLocaleDateString('es', { month: 'long', year: 'numeric' }) : ''}
+                        {current.startDate && current.endDate ? ' – ' : ''}
+                        {current.endDate ? new Date(current.endDate).toLocaleDateString('es', { month: 'long', year: 'numeric' }) : ''}
                       </p>
                     </div>
                     <button

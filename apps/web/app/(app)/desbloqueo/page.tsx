@@ -13,11 +13,9 @@ const STATUS_COLORS = {
 }
 
 export default function DesbloqueoPage() {
-  const { profile, isLoading, getSubjectStatus, preselectedCodes } = useProgress()
+  const { profile, isLoading, getSubjectStatus, preselectedCodes, allSubjects } = useProgress()
   const [selected, setSelected] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
-
-  const allSubjects = profile?.career.subjects ?? []
 
   const studentSubjects = useMemo(() =>
     (profile?.subjects ?? []).map((s) => ({

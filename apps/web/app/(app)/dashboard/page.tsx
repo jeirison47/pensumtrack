@@ -11,7 +11,7 @@ import { BookOpen, CheckCircle, Clock, Star, TrendingUp } from 'lucide-react'
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
-  const { profile, isLoading, getSubjectStatus, invalidateProgress } = useProgress()
+  const { profile, isLoading, getSubjectStatus, invalidateProgress, allSubjects } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
   const [approvingCode, setApprovingCode] = useState<string | null>(null)
   const [gradeInput, setGradeInput] = useState('')
@@ -30,7 +30,6 @@ export default function DashboardPage() {
     )
   }
 
-  const allSubjects = profile.career.subjects
   const passed     = profile.subjects.filter((s) => s.status === 'PASSED').length
   const inProgress = profile.subjects.filter((s) => s.status === 'IN_PROGRESS').length
   const presel     = profile.preselections.reduce((sum, p) => sum + p.subjects.length, 0)
@@ -38,7 +37,7 @@ export default function DashboardPage() {
   const earnedCredits = allSubjects
     .filter((s) => profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'PASSED'))
     .reduce((sum, s) => sum + s.credits, 0)
-  const totalCredits = profile.career.totalCredits
+  const totalCredits = profile.pensum?.totalCredits ?? profile.career.totalCredits ?? allSubjects.reduce((s, sub) => s + sub.credits, 0)
   const pct = Math.round((earnedCredits / totalCredits) * 100)
 
   const inProgressSubjects = allSubjects.filter((s) =>
@@ -64,11 +63,13 @@ export default function DashboardPage() {
     : null
   const indice = promedio != null ? Math.round((promedio * 4 / 100) * 100) / 100 : null
 
+  const pending = allSubjects.length - passed - inProgress
+
   const stats = [
-    { label: 'Créditos aprobados', value: `${earnedCredits}/${totalCredits}`, icon: Star,       color: 'var(--accent)' },
-    { label: 'Materias aprobadas', value: passed,                             icon: CheckCircle, color: 'var(--accent)' },
-    { label: 'En curso',           value: inProgress,                         icon: Clock,       color: 'var(--warn)' },
-    { label: 'Disponibles',        value: available,                          icon: BookOpen,    color: 'var(--accent2)' },
+    { label: 'Materias aprobadas', value: passed,    icon: CheckCircle, color: 'var(--accent)' },
+    { label: 'Materias pendientes', value: pending,   icon: BookOpen,    color: 'var(--accent2)' },
+    { label: 'Materias en curso',   value: inProgress, icon: Clock,      color: 'var(--warn)' },
+    { label: 'Materias disponibles', value: available, icon: Star,      color: 'var(--muted)' },
   ]
 
   return (
@@ -78,7 +79,7 @@ export default function DashboardPage() {
           Hola, {user?.displayName?.split(' ')[0]} 👋
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-          {profile.career.name} · {profile.career.university?.shortName ?? ''}
+          {profile.career.name}{profile.career.university?.shortName ? ` · ${profile.career.university.shortName}` : ''}{(profile.pensum?.year ?? profile.career.year) ? ` · ${profile.pensum?.year ?? profile.career.year}` : ''}
         </p>
       </div>
 

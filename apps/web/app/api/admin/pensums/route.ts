@@ -9,13 +9,32 @@ export async function GET(request: NextRequest) {
   const caller = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } })
   if (!caller?.isAdmin) return forbidden()
 
-  const careers = await prisma.career.findMany({
+  const pensums = await prisma.pensum.findMany({
     include: {
-      university: { select: { id: true, name: true, shortName: true } },
+      career: {
+        include: {
+          university: { select: { id: true, name: true, shortName: true } },
+        },
+      },
       _count: { select: { subjects: true, profiles: true } },
     },
-    orderBy: [{ university: { name: 'asc' } }, { name: 'asc' }, { year: 'desc' }],
+    orderBy: [{ career: { university: { name: 'asc' } } }, { career: { name: 'asc' } }, { year: 'desc' }],
   })
 
-  return NextResponse.json({ data: careers })
+  // Shape to match existing CareerVersion interface
+  const data = pensums.map((p) => ({
+    id: p.id,
+    name: p.career.name,
+    year: p.year,
+    periodType: p.periodType,
+    totalCredits: p.totalCredits,
+    durationSemesters: p.durationSemesters,
+    isActive: p.isActive,
+    createdAt: p.createdAt,
+    careerId: p.careerId,
+    university: p.career.university,
+    _count: p._count,
+  }))
+
+  return NextResponse.json({ data })
 }

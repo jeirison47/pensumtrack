@@ -12,11 +12,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params
   const { isActive } = await request.json()
 
-  const career = await prisma.career.update({
+  const pensum = await prisma.pensum.update({
     where: { id },
     data: { isActive: Boolean(isActive) },
     select: { id: true, isActive: true },
   })
 
-  return NextResponse.json({ data: career })
+  return NextResponse.json({ data: pensum })
 }

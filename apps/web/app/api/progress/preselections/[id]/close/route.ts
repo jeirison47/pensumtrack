@@ -37,10 +37,10 @@ export async function PUT(
     })
     if (!preselection) return NextResponse.json({ error: 'Período no encontrado' }, { status: 404 })
 
-    const periodLabel = preselection.period ?? undefined
+    const periodLabel = preselection.label ?? preselection.period ?? undefined
 
-    const txResults = await prisma.$transaction([
-      prisma.preselection.delete({ where: { id } }),
+    const [updated] = await prisma.$transaction([
+      prisma.preselection.update({ where: { id }, data: { status: 'CLOSED' } }),
       ...results.map(({ subjectCode, status, grade }) =>
         prisma.studentSubject.upsert({
           where: { profileId_subjectCode: { profileId: profile.id, subjectCode } },
@@ -50,7 +50,14 @@ export async function PUT(
       ),
     ])
 
-    return NextResponse.json({ data: txResults[0] })
+    return NextResponse.json({
+      data: {
+        ...updated,
+        label: updated.label ?? updated.period ?? '',
+        startDate: updated.startDate?.toISOString() ?? null,
+        endDate: updated.endDate?.toISOString() ?? null,
+      },
+    })
   } catch (err) {
     console.error('[preselections/close PUT]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

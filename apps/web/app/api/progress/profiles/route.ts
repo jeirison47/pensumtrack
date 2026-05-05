@@ -14,16 +14,37 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
+            university: { select: { name: true, shortName: true, logoUrl: true } },
+          },
+        },
+        pensum: {
+          select: {
+            id: true,
+            year: true,
             totalCredits: true,
             durationSemesters: true,
-            university: { select: { name: true, shortName: true, logoUrl: true } },
           },
         },
       },
       orderBy: { createdAt: 'asc' },
     })
 
-    return NextResponse.json({ data: profiles })
+    // Flatten pensum fields into the expected ProfileSummary shape
+    const data = profiles.map((p) => ({
+      id: p.id,
+      careerId: p.careerId,
+      pensumId: p.pensumId,
+      currentSemester: p.currentSemester,
+      career: {
+        id: p.career.id,
+        name: p.career.name,
+        totalCredits: p.pensum?.totalCredits ?? 0,
+        durationSemesters: p.pensum?.durationSemesters ?? 0,
+        university: p.career.university,
+      },
+    }))
+
+    return NextResponse.json({ data })
   } catch (err) {
     console.error('[profiles/list]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

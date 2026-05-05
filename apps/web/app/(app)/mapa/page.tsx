@@ -18,12 +18,10 @@ const LEGEND: { status: SubjectStatus; label: string; color: string }[] = [
 ]
 
 export default function MapaPage() {
-  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress } = useProgress()
+  const { profile, isLoading, getSubjectStatus, preselectedCodes, invalidateProgress, allSubjects } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
   const [selected, setSelected] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
-
-  const allSubjects = profile?.career.subjects ?? []
 
   const openModal = (s: Subject) => {
     setSelected(s)

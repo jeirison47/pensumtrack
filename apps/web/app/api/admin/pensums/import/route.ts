@@ -14,21 +14,6 @@ export async function POST(request: NextRequest) {
 
   const { university: uniName, career: careerName, totalCredits, durationSemesters, periodType, year, subjects } = pensum
 
-  // Check for duplicate version
-  const existingCareer = await prisma.career.findFirst({
-    where: {
-      name: careerName,
-      year,
-      university: { name: uniName },
-    },
-  })
-  if (existingCareer) {
-    return NextResponse.json(
-      { error: `Ya existe un pensum de "${careerName}" para el año ${year}` },
-      { status: 409 },
-    )
-  }
-
   // Upsert university
   let university = await prisma.university.findFirst({ where: { name: uniName } })
   if (!university) {
@@ -37,15 +22,35 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // Create career version
-  const career = await prisma.career.create({
+  // Upsert career (name + university)
+  let career = await prisma.career.findFirst({
+    where: { name: careerName, universityId: university.id },
+  })
+  if (!career) {
+    career = await prisma.career.create({
+      data: { name: careerName, universityId: university.id, isActive: true },
+    })
+  }
+
+  // Check for duplicate pensum version
+  const existingPensum = await prisma.pensum.findFirst({
+    where: { careerId: career.id, year },
+  })
+  if (existingPensum) {
+    return NextResponse.json(
+      { error: `Ya existe un pensum de "${careerName}" para el año ${year ?? 'sin año'}` },
+      { status: 409 },
+    )
+  }
+
+  // Create pensum and subjects
+  const newPensum = await prisma.pensum.create({
     data: {
-      name: careerName,
-      universityId: university.id,
+      careerId: career.id,
+      year,
+      periodType,
       totalCredits,
       durationSemesters,
-      periodType,
-      year,
       isActive: false,
       subjects: {
         create: subjects.map((s) => ({
@@ -56,14 +61,31 @@ export async function POST(request: NextRequest) {
           area: s.area ?? undefined,
           prerequisites: s.prerequisites,
           corequisites: s.corequisites,
+          careerId: career!.id,
         })),
       },
     },
     include: {
-      university: { select: { name: true, shortName: true } },
-      _count: { select: { subjects: true } },
+      career: {
+        include: { university: { select: { id: true, name: true, shortName: true } } },
+      },
+      _count: { select: { subjects: true, profiles: true } },
     },
   })
 
-  return NextResponse.json({ data: career }, { status: 201 })
+  const data = {
+    id: newPensum.id,
+    name: newPensum.career.name,
+    year: newPensum.year,
+    periodType: newPensum.periodType,
+    totalCredits: newPensum.totalCredits,
+    durationSemesters: newPensum.durationSemesters,
+    isActive: newPensum.isActive,
+    createdAt: newPensum.createdAt,
+    careerId: newPensum.careerId,
+    university: newPensum.career.university,
+    _count: newPensum._count,
+  }
+
+  return NextResponse.json({ data }, { status: 201 })
 }

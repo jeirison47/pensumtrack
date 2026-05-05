@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
-    const { label } = result.data
+    const { label, startDate, endDate } = result.data
 
     const profile = await prisma.studentProfile.findFirst({ where: { userId } })
     if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
@@ -28,12 +28,23 @@ export async function POST(request: NextRequest) {
     const preselection = await prisma.preselection.create({
       data: {
         profileId: profile.id,
+        label,
         period: label,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        status: 'OPEN',
         subjects: [],
       },
     })
 
-    return NextResponse.json({ data: preselection }, { status: 201 })
+    return NextResponse.json({
+      data: {
+        ...preselection,
+        label: preselection.label ?? preselection.period ?? '',
+        startDate: preselection.startDate?.toISOString() ?? null,
+        endDate: preselection.endDate?.toISOString() ?? null,
+      },
+    }, { status: 201 })
   } catch (err) {
     console.error('[preselections POST]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

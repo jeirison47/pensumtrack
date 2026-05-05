@@ -11,9 +11,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     include: {
       university: { select: { id: true, name: true, shortName: true, logoUrl: true } },
       subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] },
+      pensums: {
+        where: { isActive: true },
+        orderBy: { year: 'desc' },
+        take: 1,
+        include: { subjects: { orderBy: [{ semester: 'asc' }, { code: 'asc' }] } },
+      },
     },
   })
 
   if (!career) return NextResponse.json({ error: 'Carrera no encontrada' }, { status: 404 })
-  return NextResponse.json({ data: career })
+
+  const activePensum = career.pensums[0]
+
+  return NextResponse.json({
+    data: {
+      id: career.id,
+      name: career.name,
+      university: career.university,
+      totalCredits: activePensum?.totalCredits ?? career.totalCredits ?? 0,
+      durationSemesters: activePensum?.durationSemesters ?? career.durationSemesters ?? 0,
+      year: activePensum?.year ?? career.year ?? null,
+      periodType: activePensum?.periodType ?? career.periodType ?? 'semester',
+      subjects: activePensum?.subjects ?? career.subjects,
+    },
+  })
 }
