@@ -10,35 +10,45 @@ export async function POST(request: NextRequest) {
   const caller = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } })
   if (!caller?.isAdmin) return forbidden()
 
-  const pensum: ParsedPensum = await request.json()
+  const body = await request.json()
+  const { universityId: existingUniversityId, careerId: existingCareerId, ...pensum } = body as ParsedPensum & {
+    universityId?: string
+    careerId?: string
+  }
 
   const { university: uniName, career: careerName, totalCredits, durationSemesters, periodType, year, subjects } = pensum
 
-  // Upsert university
-  let university = await prisma.university.findFirst({ where: { name: uniName } })
-  if (!university) {
-    university = await prisma.university.create({
-      data: { name: uniName, shortName: uniName.slice(0, 10).toUpperCase() },
-    })
+  // Resolve university
+  let universityId: string
+  if (existingUniversityId) {
+    universityId = existingUniversityId
+  } else {
+    let university = await prisma.university.findFirst({ where: { name: uniName } })
+    if (!university) {
+      university = await prisma.university.create({
+        data: { name: uniName, shortName: uniName.slice(0, 10).toUpperCase() },
+      })
+    }
+    universityId = university.id
   }
 
-  // Upsert career (name + university)
-  let career = await prisma.career.findFirst({
-    where: { name: careerName, universityId: university.id },
-  })
-  if (!career) {
-    career = await prisma.career.create({
-      data: { name: careerName, universityId: university.id, isActive: true },
-    })
+  // Resolve career
+  let careerId: string
+  if (existingCareerId) {
+    careerId = existingCareerId
+  } else {
+    let career = await prisma.career.findFirst({ where: { name: careerName, universityId } })
+    if (!career) {
+      career = await prisma.career.create({ data: { name: careerName, universityId, isActive: true } })
+    }
+    careerId = career.id
   }
 
   // Check for duplicate pensum version
-  const existingPensum = await prisma.pensum.findFirst({
-    where: { careerId: career.id, year },
-  })
+  const existingPensum = await prisma.pensum.findFirst({ where: { careerId, year } })
   if (existingPensum) {
     return NextResponse.json(
-      { error: `Ya existe un pensum de "${careerName}" para el año ${year ?? 'sin año'}` },
+      { error: `Ya existe un pensum de esa carrera para el año ${year ?? 'sin año'}` },
       { status: 409 },
     )
   }
@@ -46,7 +56,7 @@ export async function POST(request: NextRequest) {
   // Create pensum and subjects
   const newPensum = await prisma.pensum.create({
     data: {
-      careerId: career.id,
+      careerId,
       year,
       periodType,
       totalCredits,
@@ -61,7 +71,7 @@ export async function POST(request: NextRequest) {
           area: s.area ?? undefined,
           prerequisites: s.prerequisites,
           corequisites: s.corequisites,
-          careerId: career!.id,
+          careerId,
         })),
       },
     },

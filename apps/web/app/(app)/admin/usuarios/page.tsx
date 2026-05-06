@@ -699,6 +699,13 @@ function PensumsTab() {
   const [showTemplate, setShowTemplate] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // University / career assignment
+  const [universities, setUniversities] = useState<UniversityAdmin[]>([])
+  const [uniCareers, setUniCareers] = useState<CareerAdmin[]>([])
+  const [selectedUniId, setSelectedUniId] = useState<string>('')
+  const [selectedCareerId, setSelectedCareerId] = useState<string>('')
+  const [loadingUniCareers, setLoadingUniCareers] = useState(false)
+
   const fetchCareers = useCallback(async () => {
     setLoading(true)
     try {
@@ -715,9 +722,13 @@ function PensumsTab() {
     if (!file) return
     setPreviewing(true)
     setPreview(null)
+    setSelectedUniId('')
+    setSelectedCareerId('')
+    setUniCareers([])
     try {
-      const r = await pensumApi.preview(file)
+      const [r, uR] = await Promise.all([pensumApi.preview(file), adminApi.listUniversities()])
       setPreview(r.data)
+      setUniversities(uR.data)
     } catch (err: any) {
       toast.error(err.message || 'Error al leer el archivo')
     } finally {
@@ -726,13 +737,32 @@ function PensumsTab() {
     }
   }
 
+  async function handleSelectUniversity(uniId: string) {
+    setSelectedUniId(uniId)
+    setSelectedCareerId('')
+    setUniCareers([])
+    if (uniId && uniId !== 'new') {
+      setLoadingUniCareers(true)
+      try {
+        const r = await adminApi.listCareers(uniId)
+        setUniCareers(r.data)
+      } catch { /* ignore */ }
+      finally { setLoadingUniCareers(false) }
+    }
+  }
+
   async function handleImport() {
-    if (!preview) return
+    if (!preview || !selectedUniId || !selectedCareerId) return
     setImporting(true)
     try {
-      await pensumApi.import(preview)
+      const uniId = selectedUniId === 'new' ? undefined : selectedUniId
+      const carId = selectedCareerId === 'new' ? undefined : selectedCareerId
+      await pensumApi.import(preview, uniId, carId)
       toast.success('Pensum importado correctamente')
       setPreview(null)
+      setSelectedUniId('')
+      setSelectedCareerId('')
+      setUniCareers([])
       fetchCareers()
     } catch (err: any) {
       toast.error(err.message || 'Error al importar')
@@ -813,7 +843,49 @@ function PensumsTab() {
             </div>
           )}
 
-          <button onClick={handleImport} disabled={importing}
+          {/* Asignar universidad y carrera */}
+          <div className="space-y-3 rounded-xl p-3" style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Asignar a universidad y carrera</p>
+
+            <div className="space-y-1">
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Universidad detectada: <span style={{ color: 'var(--text)' }}>"{preview.university}"</span>
+              </p>
+              <select
+                value={selectedUniId}
+                onChange={(e) => handleSelectUniversity(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>
+                <option value="">— Selecciona universidad —</option>
+                <option value="new">+ Crear nueva: "{preview.university}"</option>
+                {universities.map((u) => (
+                  <option key={u.id} value={u.id}>{u.shortName} — {u.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedUniId && (
+              <div className="space-y-1">
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                  Carrera detectada: <span style={{ color: 'var(--text)' }}>"{preview.career}"</span>
+                </p>
+                <select
+                  value={selectedCareerId}
+                  onChange={(e) => setSelectedCareerId(e.target.value)}
+                  disabled={loadingUniCareers}
+                  className="w-full px-3 py-2 rounded-xl text-sm outline-none disabled:opacity-60"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>
+                  <option value="">— Selecciona carrera —</option>
+                  <option value="new">+ Crear nueva: "{preview.career}"</option>
+                  {uniCareers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <button onClick={handleImport} disabled={importing || !selectedUniId || !selectedCareerId}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 transition-opacity hover:opacity-80"
             style={{ background: 'var(--accent)', color: '#0b0d12' }}>
             <CheckCircle size={15} />

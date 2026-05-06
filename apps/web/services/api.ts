@@ -204,10 +204,10 @@ export const pensumApi = {
       return json as { data: ParsedPensum }
     })
   },
-  import: (pensum: ParsedPensum) =>
+  import: (pensum: ParsedPensum, universityId?: string, careerId?: string) =>
     request<{ data: CareerVersion }>('/admin/pensums/import', {
       method: 'POST',
-      body: JSON.stringify(pensum),
+      body: JSON.stringify({ ...pensum, universityId, careerId }),
     }),
   list: () => request<{ data: CareerVersion[] }>('/admin/pensums'),
   toggleActive: (id: string, isActive: boolean) =>
