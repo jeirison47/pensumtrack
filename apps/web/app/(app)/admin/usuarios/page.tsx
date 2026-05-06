@@ -865,7 +865,7 @@ function PensumsTab() {
             ].map(({ label, value }) => (
               <div key={label} className="rounded-xl p-3" style={{ background: 'var(--surface2)' }}>
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>{label}</p>
-                <p className="text-sm font-semibold mt-0.5 truncate" style={{ color: 'var(--text)' }}>{value}</p>
+                <p className="text-sm font-semibold mt-0.5 break-words" style={{ color: 'var(--text)' }}>{value}</p>
               </div>
             ))}
           </div>
