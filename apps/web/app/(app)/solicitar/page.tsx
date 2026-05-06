@@ -62,7 +62,7 @@ export default function SolicitarPage() {
         <div>
           <p className="font-semibold text-lg" style={{ color: 'var(--text)' }}>¡Solicitud enviada!</p>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            Revisaremos tu solicitud y agregaremos el pensum lo antes posible.
+            Revisaremos tu solicitud y agregaremos la carrera o pensum lo antes posible.
           </p>
         </div>
         <button onClick={() => router.back()}
@@ -83,10 +83,10 @@ export default function SolicitarPage() {
           <ChevronLeft size={16} /> Volver
         </button>
         <h1 className="text-xl font-bold" style={{ color: 'var(--text)', fontFamily: 'var(--font-syne)' }}>
-          Solicitar pensum
+          Solicitud de agregar carrera o pensum
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-          ¿No encuentras tu carrera? Envíanos los datos y lo agregaremos.
+          ¿No encuentras tu carrera o pensum? Envíanos los datos y lo agregaremos.
         </p>
       </div>
 

@@ -285,12 +285,11 @@ export default function PerfilPage() {
         )}
       </div>
 
-      {/* Solicitar pensum */}
       <button onClick={() => router.push('/solicitar')}
               className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium mb-3"
               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
         <BookMarked size={16} />
-        Solicitar pensum
+        Solicitar agregar carrera o pensum
       </button>
 
       {/* Cerrar sesión */}

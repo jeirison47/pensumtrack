@@ -318,7 +318,7 @@ function UsersTab() {
         {loading ? (
           <div className="py-10 flex justify-center">
             <div className="w-6 h-6 border-2 rounded-full animate-spin"
-              style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+              style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
           </div>
         ) : users.length === 0 ? (
           <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>Sin resultados</p>
@@ -619,7 +619,7 @@ function PlansTab() {
       {loading ? (
         <div className="py-10 flex justify-center">
           <div className="w-6 h-6 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
         </div>
       ) : plans.length === 0 ? (
         <div className="py-10 text-center space-y-2">
@@ -832,7 +832,7 @@ function PensumsTab() {
 
         {loading ? (
           <div className="py-10 flex justify-center">
-            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
           </div>
         ) : careers.length === 0 ? (
           <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay pensums importados aún</p>
@@ -1050,7 +1050,7 @@ function UniversidadesTab() {
       {loading ? (
         <div className="py-10 flex justify-center">
           <div className="w-6 h-6 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
         </div>
       ) : universities.length === 0 ? (
         <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay universidades registradas</p>
@@ -1242,7 +1242,7 @@ function CarrerasTab() {
       {loading ? (
         <div className="py-10 flex justify-center">
           <div className="w-6 h-6 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
         </div>
       ) : filtered.length === 0 ? (
         <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay carreras</p>
@@ -1363,7 +1363,7 @@ function RequestsTab() {
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
         {loading ? (
           <div className="py-10 flex justify-center">
-            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--pt-border)', borderTopColor: 'var(--accent)' }} />
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
           </div>
         ) : filtered.length === 0 ? (
           <p className="py-10 text-center text-sm" style={{ color: 'var(--muted)' }}>No hay solicitudes</p>
