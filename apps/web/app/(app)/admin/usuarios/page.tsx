@@ -705,6 +705,7 @@ function PensumsTab() {
   const [selectedUniId, setSelectedUniId] = useState<string>('')
   const [selectedCareerId, setSelectedCareerId] = useState<string>('')
   const [loadingUniCareers, setLoadingUniCareers] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
   const fetchCareers = useCallback(async () => {
     setLoading(true)
@@ -717,9 +718,11 @@ function PensumsTab() {
 
   useEffect(() => { fetchCareers() }, [fetchCareers])
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  async function processFile(file: File) {
+    if (!file.name.endsWith('.md') && !file.name.endsWith('.txt')) {
+      toast.error('Solo se aceptan archivos .md o .txt')
+      return
+    }
     setPreviewing(true)
     setPreview(null)
     setSelectedUniId('')
@@ -735,6 +738,19 @@ function PensumsTab() {
       setPreviewing(false)
       if (fileRef.current) fileRef.current.value = ''
     }
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) processFile(file)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    if (previewing) return
+    const file = e.dataTransfer.files?.[0]
+    if (file) processFile(file)
   }
 
   async function handleSelectUniversity(uniId: string) {
@@ -791,15 +807,37 @@ function PensumsTab() {
   return (
     <div className="space-y-5">
       {/* Upload */}
-      <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-        <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Importar pensum</p>
-        <p className="text-xs" style={{ color: 'var(--muted)' }}>Sube un archivo <code>.md</code> o <code>.txt</code> con el formato definido</p>
-        <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer w-fit text-sm font-semibold transition-opacity hover:opacity-80"
-          style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-          <Upload size={15} />
-          {previewing ? 'Leyendo...' : 'Seleccionar archivo'}
-          <input ref={fileRef} type="file" accept=".md,.txt" className="hidden" onChange={handleFile} disabled={previewing} />
-        </label>
+      <div
+        onDragOver={(e) => { e.preventDefault(); if (!previewing) setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className="rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center transition-colors"
+        style={{
+          background: dragOver ? 'rgba(110,231,183,0.06)' : 'var(--surface)',
+          border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--pt-border)'}`,
+          cursor: previewing ? 'default' : 'default',
+        }}>
+        <Upload size={24} style={{ color: dragOver ? 'var(--accent)' : 'var(--muted)' }} />
+        <div>
+          <p className="text-sm font-semibold" style={{ color: dragOver ? 'var(--accent)' : 'var(--text)' }}>
+            {previewing ? 'Leyendo archivo...' : 'Arrastra el archivo aquí'}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+            o selecciónalo desde tu dispositivo · <code>.md</code> o <code>.txt</code>
+          </p>
+        </div>
+        {!previewing && (
+          <label className="flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+            <Upload size={14} />
+            Seleccionar archivo
+            <input ref={fileRef} type="file" accept=".md,.txt" className="hidden" onChange={handleFile} />
+          </label>
+        )}
+        {previewing && (
+          <div className="w-5 h-5 border-2 rounded-full animate-spin"
+            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
+        )}
       </div>
 
       {/* Preview */}
