@@ -32,3 +32,6 @@ apps/web/lib/generated
 
 # Vercel
 .vercel
+
+# Claude Code (local config, puede contener comandos con credenciales)
+.claude/
