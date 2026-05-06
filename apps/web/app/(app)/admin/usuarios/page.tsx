@@ -429,7 +429,7 @@ function UsersTab() {
 
       {/* Reset password modal */}
       {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 cursor-pointer"
           style={{ background: 'rgba(0,0,0,0.6)' }}
           onClick={() => setResetTarget(null)}>
           <div className="w-full max-w-xs p-5 rounded-2xl space-y-4"

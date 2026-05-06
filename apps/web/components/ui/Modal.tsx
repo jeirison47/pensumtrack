@@ -25,7 +25,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-sm' }:
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 cursor-pointer"
       style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}
     >
