@@ -22,11 +22,11 @@ type AdminUser = {
   plan?: { id: string; name: string } | null
 }
 
-type Tab = 'usuarios' | 'planes' | 'pensums' | 'solicitudes' | 'universidades' | 'carreras'
+type Tab = 'usuarios' | 'planes' | 'solicitudes' | 'pensums' | 'carreras' | 'universidades'
 
 const TAB_LABELS: Record<Tab, string> = {
-  usuarios: 'Usuarios', planes: 'Planes', pensums: 'Pensums',
-  solicitudes: 'Solicitudes', universidades: 'Universidades', carreras: 'Carreras',
+  usuarios: 'Usuarios', planes: 'Planes', solicitudes: 'Solicitudes',
+  pensums: 'Pensums', carreras: 'Carreras', universidades: 'Universidades',
 }
 
 export default function AdminPage() {
@@ -39,7 +39,7 @@ export default function AdminPage() {
       </h1>
 
       <div className="flex gap-1 p-1 rounded-xl flex-wrap" style={{ background: 'var(--surface2)' }}>
-        {(['usuarios', 'planes', 'pensums', 'solicitudes', 'universidades', 'carreras'] as Tab[]).map((t) => (
+        {(['usuarios', 'planes', 'solicitudes', 'pensums', 'carreras', 'universidades'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
