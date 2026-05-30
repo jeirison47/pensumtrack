@@ -24,10 +24,14 @@ model User {
   planId          String?
   username        String?  @unique
 
-  profiles           StudentProfile[]
-  plan               Plan?               @relation(fields: [planId], references: [id])
-  pensumRequests     PensumRequest[]
-  emailVerifications EmailVerification[]
+  profiles                StudentProfile[]
+  plan                    Plan?                    @relation(fields: [planId], references: [id])
+  pensumRequests          PensumRequest[]
+  emailVerifications      EmailVerification[]
+  professorRatings        ProfessorRating[]
+  professorComments       ProfessorComment[]
+  professorRequests       ProfessorRequest[]
+  professorUpdateRequests ProfessorUpdateRequest[]
 }
 
 model EmailVerification {
@@ -69,7 +73,9 @@ model University {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  careers Career[]
+  careers            Career[]
+  professorTeachings ProfessorTeaching[]
+  professorRequests  ProfessorRequest[]
 }
 
 model Career {
@@ -203,4 +209,112 @@ enum PensumRequestStatus {
   IN_REVIEW
   COMPLETED
   REJECTED
+}
+
+// ─── Profesores ───────────────────────────────────────────────────────────────
+
+enum ScheduleType {
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+enum ProfessorStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+model Professor {
+  id        String          @id @default(cuid())
+  name      String
+  photoUrl  String?
+  bio       String?
+  status    ProfessorStatus @default(ACTIVE)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  teachings      ProfessorTeaching[]
+  ratings        ProfessorRating[]
+  comments       ProfessorComment[]
+  updateRequests ProfessorUpdateRequest[]
+}
+
+model ProfessorTeaching {
+  id           String       @id @default(cuid())
+  professorId  String
+  universityId String
+  subjectName  String
+  schedule     ScheduleType @default(MORNING)
+  createdAt    DateTime     @default(now())
+
+  professor  Professor  @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id])
+  ratings    ProfessorRating[]
+
+  @@unique([professorId, universityId, subjectName])
+}
+
+model ProfessorRating {
+  id           String   @id @default(cuid())
+  userId       String
+  professorId  String
+  teachingId   String
+  puntualidad  Int
+  explicacion  Int
+  dominio      Int
+  exigencia    Int
+  personalidad Int
+  apoyo        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id])
+  professor Professor         @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  teaching  ProfessorTeaching @relation(fields: [teachingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teachingId])
+}
+
+model ProfessorComment {
+  id          String   @id @default(cuid())
+  userId      String
+  professorId String
+  content     String
+  isAnonymous Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+}
+
+model ProfessorRequest {
+  id             String              @id @default(cuid())
+  userId         String
+  name           String
+  universityId   String?
+  universityName String?
+  subjects       String[]
+  schedule       ScheduleType        @default(MORNING)
+  bio            String?
+  comment        String?
+  status         PensumRequestStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id])
+  university University? @relation(fields: [universityId], references: [id])
+}
+
+model ProfessorUpdateRequest {
+  id          String              @id @default(cuid())
+  userId      String
+  professorId String
+  details     String
+  status      PensumRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id])
+  professor Professor @relation(fields: [professorId], references: [id])
 }

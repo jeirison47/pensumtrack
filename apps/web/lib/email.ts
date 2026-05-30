@@ -86,6 +86,70 @@ export function sendPasswordChangedEmail(email: string, name: string) {
   )
 }
 
+export function sendProfessorRequestStatusEmail(
+  email: string,
+  name: string,
+  professorName: string,
+  status: 'COMPLETED' | 'REJECTED',
+) {
+  const approved = status === 'COMPLETED'
+  return send(
+    email,
+    name,
+    approved ? `Solicitud de profesor aprobada — PensumTrack` : `Solicitud de profesor no aprobada — PensumTrack`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b0d12;color:#e5e7eb;border-radius:16px">
+      <div style="margin-bottom:8px"><span style="font-size:22px;font-weight:700;color:#10b981">PensumTrack</span></div>
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:32px">Sistema de gestión de pensums universitarios</p>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f9fafb">
+        ${approved ? '¡Profesor agregado!' : 'Solicitud no aprobada'}
+      </h2>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:20px">
+        Hola <strong style="color:#f9fafb">${name}</strong>,
+        ${approved
+          ? ` tu solicitud para agregar al profesor <strong style="color:#f9fafb">${professorName}</strong> fue aprobada y ya está disponible en PensumTrack.`
+          : ` lamentamos informarte que la solicitud para agregar al profesor <strong style="color:#f9fafb">${professorName}</strong> no pudo ser aprobada.`}
+      </p>
+      <p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #1f2335;padding-top:16px">
+        Este correo fue enviado automáticamente.
+      </p>
+    </div>
+    `,
+  )
+}
+
+export function sendProfessorUpdateRequestStatusEmail(
+  email: string,
+  name: string,
+  professorName: string,
+  status: 'COMPLETED' | 'REJECTED',
+) {
+  const approved = status === 'COMPLETED'
+  return send(
+    email,
+    name,
+    approved ? `Actualización de profesor aprobada — PensumTrack` : `Actualización de profesor rechazada — PensumTrack`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b0d12;color:#e5e7eb;border-radius:16px">
+      <div style="margin-bottom:8px"><span style="font-size:22px;font-weight:700;color:#10b981">PensumTrack</span></div>
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:32px">Sistema de gestión de pensums universitarios</p>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f9fafb">
+        ${approved ? 'Información actualizada' : 'Solicitud rechazada'}
+      </h2>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:20px">
+        Hola <strong style="color:#f9fafb">${name}</strong>,
+        ${approved
+          ? ` tu solicitud de actualización para el profesor <strong style="color:#f9fafb">${professorName}</strong> fue aprobada y la información ya está actualizada.`
+          : ` tu solicitud de actualización para el profesor <strong style="color:#f9fafb">${professorName}</strong> no pudo ser aprobada en este momento.`}
+      </p>
+      <p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #1f2335;padding-top:16px">
+        Este correo fue enviado automáticamente.
+      </p>
+    </div>
+    `,
+  )
+}
+
 export function sendRequestStatusEmail(
   email: string,
   name: string,

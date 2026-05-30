@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
@@ -22,11 +22,11 @@ type AdminUser = {
   plan?: { id: string; name: string } | null
 }
 
-type Tab = 'usuarios' | 'planes' | 'solicitudes' | 'pensums' | 'carreras' | 'universidades'
+type Tab = 'usuarios' | 'planes' | 'solicitudes' | 'pensums' | 'carreras' | 'universidades' | 'profesores'
 
 const TAB_LABELS: Record<Tab, string> = {
   usuarios: 'Usuarios', planes: 'Planes', solicitudes: 'Solicitudes',
-  pensums: 'Pensums', carreras: 'Carreras', universidades: 'Universidades',
+  pensums: 'Pensums', carreras: 'Carreras', universidades: 'Universidades', profesores: 'Profesores',
 }
 
 export default function AdminPage() {
@@ -39,7 +39,7 @@ export default function AdminPage() {
       </h1>
 
       <div className="flex gap-1 p-1 rounded-xl flex-wrap" style={{ background: 'var(--surface2)' }}>
-        {(['usuarios', 'planes', 'solicitudes', 'pensums', 'carreras', 'universidades'] as Tab[]).map((t) => (
+        {(['usuarios', 'planes', 'solicitudes', 'pensums', 'carreras', 'universidades', 'profesores'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -60,6 +60,7 @@ export default function AdminPage() {
       {tab === 'solicitudes' && <RequestsTab />}
       {tab === 'universidades' && <UniversidadesTab />}
       {tab === 'carreras' && <CarrerasTab />}
+      {tab === 'profesores' && <ProfesoresAdminTab />}
     </div>
   )
 }
@@ -1532,6 +1533,189 @@ function RequestsTab() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Profesores Admin Tab ──────────────────────────────────────────────────────
+
+type ProfReq = { id: string; name: string; subjects: string[]; schedule: string; bio: string | null; comment: string | null; status: string; createdAt: string; user: { id: string; displayName: string; email: string }; university: { id: string; name: string; shortName: string } | null; universityName: string | null }
+type ProfUpdateReq = { id: string; details: string; status: string; createdAt: string; user: { id: string; displayName: string; email: string }; professor: { id: string; name: string } }
+type AdminProf = { id: string; name: string; bio: string | null; status: string; teachings: { id: string; subjectName: string; schedule: string; university: { id: string; name: string; shortName: string } }[]; _count: { ratings: number; comments: number } }
+
+const SCHED_LABELS: Record<string, string> = { MORNING: 'Mañana', AFTERNOON: 'Tarde', NIGHT: 'Noche' }
+const REQ_STATUS_LABELS: Record<string, string> = { PENDING: 'Pendiente', IN_REVIEW: 'En revisión', COMPLETED: 'Aprobada', REJECTED: 'Rechazada' }
+
+function ProfesoresAdminTab() {
+  const [subTab, setSubTab] = useState<'profesores' | 'solicitudes' | 'actualizaciones'>('profesores')
+  const [professors, setProfessors] = useState<AdminProf[]>([])
+  const [profRequests, setProfRequests] = useState<ProfReq[]>([])
+  const [updateRequests, setUpdateRequests] = useState<ProfUpdateReq[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createBio, setCreateBio] = useState('')
+  const [createLoading, setCreateLoading] = useState(false)
+  const [teachingProfId, setTeachingProfId] = useState<string | null>(null)
+  const [teachingUniversityId, setTeachingUniversityId] = useState('')
+  const [teachingSubject, setTeachingSubject] = useState('')
+  const [teachingSchedule, setTeachingSchedule] = useState('MORNING')
+  const [teachingLoading, setTeachingLoading] = useState(false)
+  const [adminUnis, setAdminUnis] = useState<{ id: string; name: string; shortName: string }[]>([])
+
+  function authHdr(): HeadersInit {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+  }
+
+  async function loadAll() {
+    setLoading(true)
+    try {
+      const [p, pr, ur] = await Promise.all([
+        fetch('/api/admin/professors', { headers: authHdr() }).then((r) => r.json()),
+        fetch('/api/admin/professor-requests', { headers: authHdr() }).then((r) => r.json()),
+        fetch('/api/admin/professor-update-requests', { headers: authHdr() }).then((r) => r.json()),
+      ])
+      setProfessors(p.data ?? []); setProfRequests(pr.data ?? []); setUpdateRequests(ur.data ?? [])
+    } catch { toast.error('Error al cargar') } finally { setLoading(false) }
+  }
+
+  useEffect(() => {
+    loadAll()
+    fetch('/api/universities').then((r) => r.json()).then((j) => setAdminUnis(j.data ?? []))
+  }, [])
+
+  const pendingProf = profRequests.filter((r) => r.status === 'PENDING' || r.status === 'IN_REVIEW').length
+  const pendingUpd = updateRequests.filter((r) => r.status === 'PENDING' || r.status === 'IN_REVIEW').length
+
+  async function doCreateProf(e: React.FormEvent) {
+    e.preventDefault(); setCreateLoading(true)
+    try {
+      const res = await fetch('/api/admin/professors', { method: 'POST', headers: authHdr(), body: JSON.stringify({ name: createName, bio: createBio || undefined }) })
+      const json = await res.json(); if (!res.ok) throw new Error(json.error)
+      toast.success('Profesor creado'); setCreateName(''); setCreateBio(''); setShowCreate(false); loadAll()
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error') } finally { setCreateLoading(false) }
+  }
+
+  async function doAddTeaching(e: React.FormEvent) {
+    e.preventDefault(); if (!teachingProfId) return; setTeachingLoading(true)
+    try {
+      const res = await fetch(`/api/admin/professors/${teachingProfId}/teachings`, { method: 'POST', headers: authHdr(), body: JSON.stringify({ universityId: teachingUniversityId, subjectName: teachingSubject, schedule: teachingSchedule }) })
+      const json = await res.json(); if (!res.ok) throw new Error(json.error)
+      toast.success('Materia agregada'); setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSchedule('MORNING'); loadAll()
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error') } finally { setTeachingLoading(false) }
+  }
+
+  async function doProfReq(id: string, status: 'COMPLETED' | 'REJECTED') {
+    const res = await fetch(`/api/admin/professor-requests/${id}`, { method: 'PATCH', headers: authHdr(), body: JSON.stringify({ status }) })
+    const json = await res.json(); if (!res.ok) return toast.error(json.error)
+    toast.success(status === 'COMPLETED' ? 'Aprobada' : 'Rechazada'); loadAll()
+  }
+
+  async function doUpdReq(id: string, status: 'COMPLETED' | 'REJECTED') {
+    const res = await fetch(`/api/admin/professor-update-requests/${id}`, { method: 'PATCH', headers: authHdr(), body: JSON.stringify({ status }) })
+    const json = await res.json(); if (!res.ok) return toast.error(json.error)
+    toast.success(status === 'COMPLETED' ? 'Aplicada' : 'Rechazada'); loadAll()
+  }
+
+  if (loading) return <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} /></div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        {(['profesores', 'solicitudes', 'actualizaciones'] as const).map((k) => {
+          const label = k === 'solicitudes' ? `Solicitudes${pendingProf > 0 ? ` (${pendingProf})` : ''}` : k === 'actualizaciones' ? `Actualizaciones${pendingUpd > 0 ? ` (${pendingUpd})` : ''}` : 'Profesores'
+          return <button key={k} onClick={() => setSubTab(k)} className="px-4 py-1.5 rounded-lg text-sm font-medium cursor-pointer" style={{ background: subTab === k ? 'var(--accent)' : 'var(--surface)', color: subTab === k ? '#0b0d12' : 'var(--muted)' }}>{label}</button>
+        })}
+      </div>
+
+      {subTab === 'profesores' && (
+        <div className="space-y-3">
+          <button onClick={() => setShowCreate(!showCreate)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}><Plus size={15} /> Agregar profesor</button>
+          {showCreate && (
+            <form onSubmit={doCreateProf} className="p-4 rounded-2xl space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+              <input value={createName} onChange={(e) => setCreateName(e.target.value)} required placeholder="Nombre del profesor" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+              <textarea value={createBio} onChange={(e) => setCreateBio(e.target.value)} placeholder="Descripción (opcional)" rows={2} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>Cancelar</button>
+                <button type="submit" disabled={createLoading} className="flex-1 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}>{createLoading ? 'Creando...' : 'Crear'}</button>
+              </div>
+            </form>
+          )}
+          {professors.map((p) => (
+            <div key={p.id} className="p-4 rounded-2xl space-y-2" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{p.name}</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>⭐ {p._count.ratings} · 💬 {p._count.comments}</span>
+                  <button onClick={() => setTeachingProfId(p.id)} className="px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--accent)' }}>+ Materia</button>
+                </div>
+              </div>
+              {p.teachings.length > 0 && <div className="flex flex-wrap gap-1.5">{p.teachings.map((t) => <span key={t.id} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>{t.subjectName} · {t.university.shortName} · {SCHED_LABELS[t.schedule]}</span>)}</div>}
+            </div>
+          ))}
+          {teachingProfId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+              <form onSubmit={doAddTeaching} className="w-full max-w-sm p-5 rounded-2xl space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <p className="font-bold" style={{ color: 'var(--text)' }}>Agregar materia</p>
+                <select value={teachingUniversityId} onChange={(e) => setTeachingUniversityId(e.target.value)} required className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}><option value="">Seleccionar universidad</option>{adminUnis.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
+                <input value={teachingSubject} onChange={(e) => setTeachingSubject(e.target.value)} required placeholder="Nombre de la materia" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+                <select value={teachingSchedule} onChange={(e) => setTeachingSchedule(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>{[['MORNING','Mañana'],['AFTERNOON','Tarde'],['NIGHT','Noche']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setTeachingProfId(null)} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>Cancelar</button>
+                  <button type="submit" disabled={teachingLoading} className="flex-1 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}>{teachingLoading ? 'Agregando...' : 'Agregar'}</button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {subTab === 'solicitudes' && (
+        <div className="space-y-3">
+          {profRequests.length === 0 ? <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>No hay solicitudes</p>
+            : profRequests.map((r) => (
+              <div key={r.id} className="p-4 rounded-2xl space-y-2" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{r.name}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: r.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : r.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : 'rgba(248,113,113,0.12)', color: r.status === 'PENDING' ? '#f59e0b' : r.status === 'COMPLETED' ? '#10b981' : '#f87171' }}>{REQ_STATUS_LABELS[r.status]}</span>
+                </div>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>{r.university?.name ?? r.universityName ?? 'Sin universidad'} · {SCHED_LABELS[r.schedule]}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Materias: {r.subjects.join(', ')}</p>
+                {r.comment && <p className="text-xs italic" style={{ color: 'var(--muted)' }}>{r.comment}</p>}
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Por: {r.user.displayName}</p>
+                {(r.status === 'PENDING' || r.status === 'IN_REVIEW') && (
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => doProfReq(r.id, 'COMPLETED')} className="flex-1 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981' }}>Aprobar</button>
+                    <button onClick={() => doProfReq(r.id, 'REJECTED')} className="flex-1 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}>Rechazar</button>
+                  </div>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
+
+      {subTab === 'actualizaciones' && (
+        <div className="space-y-3">
+          {updateRequests.length === 0 ? <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>No hay solicitudes</p>
+            : updateRequests.map((r) => (
+              <div key={r.id} className="p-4 rounded-2xl space-y-2" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{r.professor.name}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: r.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : r.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : 'rgba(248,113,113,0.12)', color: r.status === 'PENDING' ? '#f59e0b' : r.status === 'COMPLETED' ? '#10b981' : '#f87171' }}>{REQ_STATUS_LABELS[r.status]}</span>
+                </div>
+                <p className="text-sm" style={{ color: 'var(--text)' }}>{r.details}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Por: {r.user.displayName}</p>
+                {(r.status === 'PENDING' || r.status === 'IN_REVIEW') && (
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={() => doUpdReq(r.id, 'COMPLETED')} className="flex-1 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981' }}>Marcar aplicada</button>
+                    <button onClick={() => doUpdReq(r.id, 'REJECTED')} className="flex-1 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}>Rechazar</button>
+                  </div>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
     </div>
   )
 }

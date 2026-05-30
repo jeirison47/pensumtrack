@@ -2,17 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser, Sun, Moon, Shield } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser, Sun, Moon, Shield, GraduationCap } from 'lucide-react'
 import { useThemeStore } from '@/store/useThemeStore'
 import { useAuthStore } from '@/store/useAuthStore'
 
 const studentNav = [
-  { href: '/dashboard',    label: 'Inicio',  icon: LayoutDashboard },
-  { href: '/pensum',       label: 'Pensum',  icon: BookOpen },
-  { href: '/preseleccion', label: 'Presel.', icon: CheckSquare },
-  { href: '/mapa',         label: 'Mapa',    icon: GitBranch },
-  { href: '/desbloqueo',   label: 'Unlock',  icon: Unlock },
-  { href: '/perfil',       label: 'Perfil',  icon: CircleUser },
+  { href: '/dashboard',    label: 'Inicio',   icon: LayoutDashboard },
+  { href: '/pensum',       label: 'Pensum',   icon: BookOpen },
+  { href: '/preseleccion', label: 'Presel.',  icon: CheckSquare },
+  { href: '/profesores',   label: 'Profes.',  icon: GraduationCap },
+  { href: '/mapa',         label: 'Mapa',     icon: GitBranch },
+  { href: '/perfil',       label: 'Perfil',   icon: CircleUser },
 ]
 
 const adminNav = [
