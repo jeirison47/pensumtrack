@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { getUserId, unauthorized } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
+import { sendPasswordChangedEmail } from '@/lib/email'
 
 const schema = z.object({
   displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').optional(),
@@ -53,6 +54,10 @@ export async function PATCH(request: NextRequest) {
       data: updateData,
       select: { id: true, email: true, displayName: true, isAdmin: true, createdAt: true },
     })
+
+    if (updateData.passwordHash) {
+      await sendPasswordChangedEmail(updated.email, updated.displayName)
+    }
 
     return NextResponse.json({ data: updated })
   } catch (err) {

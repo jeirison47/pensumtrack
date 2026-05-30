@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { authApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function RegisterPage() {
@@ -14,9 +13,11 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleUsernameChange = (value: string) => {
     setUsername(value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
@@ -31,10 +32,27 @@ export default function RegisterPage() {
       return
     }
 
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+
     setLoading(true)
     try {
-      const res = await authApi.register(email, username, password, displayName)
-      setAuth(res.data.user, res.data.token)
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, username, password, displayName }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Error al crear la cuenta')
+
+      if (json.data.requiresVerification) {
+        router.replace(`/verify-email?userId=${json.data.userId}&email=${encodeURIComponent(json.data.email)}`)
+        return
+      }
+
+      setAuth(json.data.user, json.data.token)
       router.replace('/onboarding')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al crear la cuenta')
@@ -123,6 +141,37 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm" style={{ color: 'var(--muted)' }}>Confirmar contraseña</label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                placeholder="Repite tu contraseña"
+                minLength={6}
+                className="w-full px-4 py-3 pr-11 rounded-xl text-sm outline-none"
+                style={{
+                  background: 'var(--surface)',
+                  border: `1px solid ${confirmPassword && confirmPassword !== password ? '#f87171' : 'var(--pt-border)'}`,
+                  color: 'var(--text)',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                style={{ color: 'var(--muted)' }}
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {confirmPassword && confirmPassword !== password && (
+              <p className="text-xs" style={{ color: '#f87171' }}>Las contraseñas no coinciden</p>
+            )}
           </div>
 
           {error && (

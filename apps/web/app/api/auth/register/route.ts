@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
+import { sendOtpEmail } from '@/lib/email'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -14,6 +14,10 @@ const schema = z.object({
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
 })
+
+function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,31 +46,25 @@ export async function POST(request: NextRequest) {
         username,
         passwordHash,
         displayName,
+        isEmailVerified: false,
         ...(defaultPlan ? { planId: defaultPlan.id } : {}),
-      },
-      include: {
-        plan: { select: { name: true, features: { select: { featureKey: true } } } },
-        profiles: { select: { id: true, careerId: true, currentSemester: true }, take: 1, orderBy: { createdAt: 'asc' } },
       },
     })
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET ?? '', { expiresIn: '7d' })
-    return NextResponse.json({
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          displayName: user.displayName,
-          isAdmin: user.isAdmin,
-          createdAt: user.createdAt,
-          planName: user.plan?.name ?? null,
-          planFeatures: user.plan?.features.map((f) => f.featureKey) ?? [],
-          settings: user.profiles[0] ?? null,
-        },
-        token,
-      },
-    }, { status: 201 })
+    // Crear OTP con expiración de 15 minutos
+    const code = generateOtp()
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
+
+    await prisma.emailVerification.create({
+      data: { userId: user.id, code, expiresAt },
+    })
+
+    await sendOtpEmail(email, displayName, code)
+
+    return NextResponse.json(
+      { data: { requiresVerification: true, userId: user.id, email: user.email } },
+      { status: 201 },
+    )
   } catch (err) {
     console.error('[register]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })

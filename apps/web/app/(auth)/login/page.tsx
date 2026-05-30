@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { authApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export default function LoginPage() {
@@ -21,9 +20,22 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await authApi.login(identifier, password)
-      setAuth(res.data.user, res.data.token)
-      router.replace(res.data.user.isAdmin ? '/admin' : '/dashboard')
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      })
+      const json = await res.json()
+
+      if (json.data?.requiresVerification) {
+        router.replace(`/verify-email?userId=${json.data.userId}&email=${encodeURIComponent(json.data.email)}`)
+        return
+      }
+
+      if (!res.ok) throw new Error(json.error ?? 'Error al iniciar sesión')
+
+      setAuth(json.data.user, json.data.token)
+      router.replace(json.data.user.isAdmin ? '/admin' : '/dashboard')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
     } finally {
