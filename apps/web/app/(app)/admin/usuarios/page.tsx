@@ -1562,6 +1562,8 @@ function ProfesoresAdminTab() {
   const [teachingSchedule, setTeachingSchedule] = useState('MORNING')
   const [teachingLoading, setTeachingLoading] = useState(false)
   const [adminUnis, setAdminUnis] = useState<{ id: string; name: string; shortName: string }[]>([])
+  const [teachingSubjects, setTeachingSubjects] = useState<string[]>([])
+  const [teachingSubjectsLoading, setTeachingSubjectsLoading] = useState(false)
 
   function authHdr(): HeadersInit {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
@@ -1585,6 +1587,16 @@ function ProfesoresAdminTab() {
     fetch('/api/universities').then((r) => r.json()).then((j) => setAdminUnis(j.data ?? []))
   }, [])
 
+  useEffect(() => {
+    if (!teachingUniversityId) { setTeachingSubjects([]); return }
+    setTeachingSubjectsLoading(true)
+    setTeachingSubject('')
+    fetch(`/api/universities/${teachingUniversityId}/subjects`)
+      .then((r) => r.json()).then((j) => setTeachingSubjects(j.data ?? []))
+      .catch(() => setTeachingSubjects([]))
+      .finally(() => setTeachingSubjectsLoading(false))
+  }, [teachingUniversityId])
+
   const pendingProf = profRequests.filter((r) => r.status === 'PENDING' || r.status === 'IN_REVIEW').length
   const pendingUpd = updateRequests.filter((r) => r.status === 'PENDING' || r.status === 'IN_REVIEW').length
 
@@ -1602,7 +1614,7 @@ function ProfesoresAdminTab() {
     try {
       const res = await fetch(`/api/admin/professors/${teachingProfId}/teachings`, { method: 'POST', headers: authHdr(), body: JSON.stringify({ universityId: teachingUniversityId, subjectName: teachingSubject, schedule: teachingSchedule }) })
       const json = await res.json(); if (!res.ok) throw new Error(json.error)
-      toast.success('Materia agregada'); setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSchedule('MORNING'); loadAll()
+      toast.success('Materia agregada'); setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSchedule('MORNING'); setTeachingSubjects([]); loadAll()
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error') } finally { setTeachingLoading(false) }
   }
 
@@ -1659,10 +1671,19 @@ function ProfesoresAdminTab() {
               <form onSubmit={doAddTeaching} className="w-full max-w-sm p-5 rounded-2xl space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
                 <p className="font-bold" style={{ color: 'var(--text)' }}>Agregar materia</p>
                 <select value={teachingUniversityId} onChange={(e) => setTeachingUniversityId(e.target.value)} required className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}><option value="">Seleccionar universidad</option>{adminUnis.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>
-                <input value={teachingSubject} onChange={(e) => setTeachingSubject(e.target.value)} required placeholder="Nombre de la materia" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+                {teachingSubjectsLoading ? (
+                  <p className="text-sm px-3 py-2.5" style={{ color: 'var(--muted)' }}>Cargando materias...</p>
+                ) : teachingSubjects.length > 0 ? (
+                  <select value={teachingSubject} onChange={(e) => setTeachingSubject(e.target.value)} required className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>
+                    <option value="">Seleccionar materia</option>
+                    {teachingSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                ) : (
+                  <input value={teachingSubject} onChange={(e) => setTeachingSubject(e.target.value)} required placeholder={teachingUniversityId ? 'Sin materias registradas — escribir nombre' : 'Primero selecciona una universidad'} disabled={!teachingUniversityId} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none disabled:opacity-50" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+                )}
                 <select value={teachingSchedule} onChange={(e) => setTeachingSchedule(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>{[['MORNING','Mañana'],['AFTERNOON','Tarde'],['NIGHT','Noche']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setTeachingProfId(null)} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>Cancelar</button>
+                  <button type="button" onClick={() => { setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSubjects([]) }} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>Cancelar</button>
                   <button type="submit" disabled={teachingLoading} className="flex-1 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}>{teachingLoading ? 'Agregando...' : 'Agregar'}</button>
                 </div>
               </form>

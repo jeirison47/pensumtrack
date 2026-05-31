@@ -4,14 +4,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
-import { LayoutDashboard, BookOpen, GitBranch, Unlock, CheckSquare, CircleUser, Moon, Sun, Shield } from 'lucide-react'
+import { LayoutDashboard, BookOpen, GitBranch, CheckSquare, CircleUser, Moon, Sun, Shield, GraduationCap } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard',    label: 'Inicio',      icon: LayoutDashboard },
   { href: '/pensum',       label: 'Pensum',       icon: BookOpen },
   { href: '/preseleccion', label: 'Preselección', icon: CheckSquare },
+  { href: '/profesores',   label: 'Profesores',   icon: GraduationCap },
   { href: '/mapa',         label: 'Mapa',         icon: GitBranch },
-  { href: '/desbloqueo',   label: 'Desbloqueo',   icon: Unlock },
 ]
 
 export function TopNav() {
@@ -31,7 +31,7 @@ export function TopNav() {
 
       <nav className="flex items-center gap-1">
         {!user?.isAdmin && nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
+          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link key={href} href={href}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
