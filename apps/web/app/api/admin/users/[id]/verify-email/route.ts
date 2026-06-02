@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getUserFromRequest } from '@/lib/auth-helper'
+import { getUserId } from '@/lib/auth-helper'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const callerId = await getUserFromRequest(req)
+  const callerId = await getUserId(req)
   if (!callerId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const caller = await prisma.user.findUnique({ where: { id: callerId }, select: { isAdmin: true } })
