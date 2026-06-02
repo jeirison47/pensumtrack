@@ -9,8 +9,8 @@ import type { Subject, StudentSubject, SubjectStatus } from '@pensumtrack/types'
  *   passed      → el estudiante la marcó como aprobada
  *   in-progress → el estudiante la marcó como en curso
  *   preselected → está en la preselección activa
- *   available   → todos sus prerrequisitos están passed o in-progress
- *   locked      → al menos un prerrequisito no está passed/in-progress
+ *   available   → todos sus prerrequisitos están passed
+ *   locked      → al menos un prerrequisito no está passed
  *   pending     → sin prerrequisitos y aún no iniciada (C1)
  */
 export function calcSubjectStatus(
@@ -29,7 +29,7 @@ export function calcSubjectStatus(
 
   const allMet = subject.prerequisites.every((prereq) => {
     const prereqRecord = studentSubjects.find((s) => s.subjectCode === prereq)
-    return prereqRecord?.status === 'passed' || prereqRecord?.status === 'in-progress'
+    return prereqRecord?.status === 'passed'
   })
 
   return allMet ? 'available' : 'locked'
