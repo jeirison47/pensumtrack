@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
         displayName: true,
         isAdmin: true,
         isActive: true,
+        isEmailVerified: true,
         createdAt: true,
         plan: { select: { id: true, name: true } },
       },

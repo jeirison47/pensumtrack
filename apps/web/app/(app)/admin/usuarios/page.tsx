@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Search, Shield, ShieldOff, UserCheck, UserX, Users, BookOpen, GraduationCap,
   ChevronLeft, ChevronRight, Plus, Trash2, CreditCard, Tag, KeyRound,
-  Upload, Eye, EyeOff, CheckCircle, AlertTriangle, ToggleLeft, ToggleRight, Copy, Check,
+  Upload, Eye, EyeOff, CheckCircle, AlertTriangle, ToggleLeft, ToggleRight, Copy, Check, MailCheck,
 } from 'lucide-react'
 import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus, type UniversityAdmin, type CareerAdmin } from '@/services/api'
 import { PENSUM_TEMPLATE, PERIOD_LABELS } from '@/lib/parsePensum'
@@ -18,6 +18,7 @@ type AdminUser = {
   displayName: string
   isAdmin: boolean
   isActive: boolean
+  isEmailVerified: boolean
   createdAt: string
   plan?: { id: string; name: string } | null
 }
@@ -201,6 +202,21 @@ function UsersTab() {
     }
   }
 
+  async function handleVerifyEmail(user: AdminUser) {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`/api/admin/users/${user.id}/verify-email`, {
+        method: 'PATCH',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error()
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, isEmailVerified: true } : u))
+      toast.success(`Correo de ${user.displayName} verificado`)
+    } catch {
+      toast.error('Error al verificar correo')
+    }
+  }
+
   async function handleAssignPlan(user: AdminUser, planId: string | null) {
     try {
       await adminApi.assignPlan(user.id, planId)
@@ -380,6 +396,14 @@ function UsersTab() {
                         <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
+                  )}
+                  {!user.isEmailVerified && (
+                    <button onClick={() => handleVerifyEmail(user)}
+                      title="Marcar correo como verificado"
+                      className="p-1.5 rounded-lg transition hover:opacity-70"
+                      style={{ color: '#f59e0b' }}>
+                      <MailCheck size={15} />
+                    </button>
                   )}
                   <button onClick={() => { setResetTarget(user); setNewPassword('') }}
                     title="Resetear contraseña"
