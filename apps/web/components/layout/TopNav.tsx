@@ -20,8 +20,9 @@ export function TopNav() {
   const { theme, toggle } = useThemeStore()
 
   return (
-    <header className="hidden md:flex items-center justify-between px-8 py-4 sticky top-0 z-50"
+    <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-3 md:py-4"
             style={{ background: 'var(--surface)', borderBottom: '1px solid var(--pt-border)' }}>
+      {/* Logo */}
       <Link href="/dashboard" className="flex items-center gap-2">
         <img src="/logo.png" alt="PensumTrack" className="w-7 h-7 object-contain" />
         <span className="font-bold text-lg" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
@@ -29,7 +30,8 @@ export function TopNav() {
         </span>
       </Link>
 
-      <nav className="flex items-center gap-1">
+      {/* Nav links — desktop only */}
+      <nav className="hidden md:flex items-center gap-1">
         {!user?.isAdmin && nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
@@ -57,21 +59,22 @@ export function TopNav() {
         )}
       </nav>
 
-      <div className="flex items-center gap-2">
+      {/* Right side: perfil + tema */}
+      <div className="flex items-center gap-1">
         <Link href="/perfil"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
               style={{
                 color: pathname === '/perfil' ? 'var(--accent)' : 'var(--muted)',
                 background: pathname === '/perfil' ? 'rgba(16,185,129,0.08)' : 'transparent',
               }}>
-          <CircleUser size={16} />
-          Perfil
+          <CircleUser size={20} />
+          <span className="hidden md:inline">Perfil</span>
         </Link>
         <button onClick={toggle}
-                className="p-2 rounded-lg transition-colors hover:opacity-70"
+                className="p-2 rounded-lg transition-colors hover:opacity-70 cursor-pointer"
                 style={{ color: 'var(--muted)' }}
                 title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
       </div>
     </header>
