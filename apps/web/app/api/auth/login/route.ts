@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
+import { resolveEffectivePlan } from '@/lib/plan'
 
 const schema = z.object({
   identifier: z.string().min(1, 'Email o usuario requerido'),
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const effectivePlan = resolveEffectivePlan(user)
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET ?? '', { expiresIn: '7d' })
     return NextResponse.json({
       data: {
@@ -75,8 +78,10 @@ export async function POST(request: NextRequest) {
           displayName: user.displayName,
           isAdmin: user.isAdmin,
           createdAt: user.createdAt,
-          planName: user.plan?.name ?? null,
-          planFeatures: user.plan?.features.map((f) => f.featureKey) ?? [],
+          planName: effectivePlan.planName,
+          planFeatures: effectivePlan.planFeatures,
+          planExpiresAt: effectivePlan.planExpiresAt,
+          planExpired: effectivePlan.planExpired,
           settings: user.profiles[0] ?? null,
         },
         token,

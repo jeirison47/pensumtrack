@@ -6,7 +6,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "lib/generated/prisma/**"],
-      "env": ["DATABASE_URL", "JWT_SECRET", "BREVO_API_KEY", "BLOB_READ_WRITE_TOKEN", "BLOB_STORE_ID", "BLOB_WEBHOOK_PUBLIC_KEY"]
+      "env": ["DATABASE_URL", "JWT_SECRET", "BREVO_API_KEY", "BLOB_READ_WRITE_TOKEN", "BLOB_STORE_ID", "BLOB_WEBHOOK_PUBLIC_KEY", "CRON_SECRET"]
     },
     "dev": {
       "cache": false,

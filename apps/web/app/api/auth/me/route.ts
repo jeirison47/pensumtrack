@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserId, unauthorized } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
+import { resolveEffectivePlan } from '@/lib/plan'
 
 export async function GET(request: NextRequest) {
   const userId = getUserId(request)
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
 
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
+  const plan = resolveEffectivePlan(user)
+
   return NextResponse.json({
     data: {
       id: user.id,
@@ -24,8 +27,10 @@ export async function GET(request: NextRequest) {
       displayName: user.displayName,
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
-      planName: user.plan?.name ?? null,
-      planFeatures: user.plan?.features.map((f) => f.featureKey) ?? [],
+      planName: plan.planName,
+      planFeatures: plan.planFeatures,
+      planExpiresAt: plan.planExpiresAt,
+      planExpired: plan.planExpired,
       settings: user.profiles[0] ?? null,
     },
   })

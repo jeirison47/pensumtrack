@@ -201,3 +201,81 @@ export function sendRequestStatusEmail(
     `,
   )
 }
+
+export function sendPlanExpiringEmail(
+  email: string,
+  name: string,
+  planName: string,
+  expiresAt: Date,
+  daysLeft: number,
+) {
+  const fecha = expiresAt.toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })
+  return send(
+    email,
+    name,
+    `Tu plan ${planName} vence pronto — PensumTrack`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b0d12;color:#e5e7eb;border-radius:16px">
+      <div style="margin-bottom:8px">
+        <span style="font-size:22px;font-weight:700;color:#10b981">PensumTrack</span>
+      </div>
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:32px">Sistema de gestión de pensums universitarios</p>
+
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(234,179,8,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:22px">⏳</div>
+
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f9fafb">Tu plan vence en ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'}</h2>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:20px">
+        Hola <strong style="color:#f9fafb">${name}</strong>, tu plan
+        <strong style="color:#f9fafb">${planName}</strong> vence el
+        <strong style="color:#f9fafb">${fecha}</strong>. Renueva tu pago para no perder el acceso a las funciones premium.
+      </p>
+
+      <div style="background:#1a1d26;border:1px solid #2d3140;border-radius:12px;padding:16px;margin-bottom:28px">
+        <p style="font-size:13px;color:#9ca3af;margin:0">
+          Para renovar, realiza el pago y envía el comprobante desde tu perfil en la app,
+          o escríbenos por WhatsApp al <strong style="color:#f9fafb">809-980-9245</strong>.
+        </p>
+      </div>
+
+      <p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #1f2335;padding-top:16px">
+        Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.
+      </p>
+    </div>
+    `,
+  )
+}
+
+export function sendPlanExpiredEmail(email: string, name: string, planName: string) {
+  return send(
+    email,
+    name,
+    `Tu plan ${planName} venció — PensumTrack`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b0d12;color:#e5e7eb;border-radius:16px">
+      <div style="margin-bottom:8px">
+        <span style="font-size:22px;font-weight:700;color:#10b981">PensumTrack</span>
+      </div>
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:32px">Sistema de gestión de pensums universitarios</p>
+
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(248,113,113,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:22px">🔒</div>
+
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f9fafb">Tu plan ${planName} venció</h2>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:20px">
+        Hola <strong style="color:#f9fafb">${name}</strong>, tu plan venció y tu cuenta volvió al plan gratuito.
+        Tu información sigue guardada; solo se pausaron las funciones premium.
+      </p>
+
+      <div style="background:#1a1d26;border:1px solid #2d3140;border-radius:12px;padding:16px;margin-bottom:28px">
+        <p style="font-size:13px;color:#9ca3af;margin:0">
+          Renueva cuando quieras desde tu perfil en la app o escríbenos por WhatsApp al
+          <strong style="color:#f9fafb">809-980-9245</strong> para reactivar tu plan.
+        </p>
+      </div>
+
+      <p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #1f2335;padding-top:16px">
+        Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.
+      </p>
+    </div>
+    `,
+  )
+}

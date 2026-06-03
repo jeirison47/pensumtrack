@@ -1,4 +1,10 @@
 {
   "buildCommand": "npx turbo run build --filter=@pensumtrack/web",
-  "installCommand": "pnpm install"
+  "installCommand": "pnpm install",
+  "crons": [
+    {
+      "path": "/api/cron/expire-plans",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

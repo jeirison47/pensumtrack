@@ -250,6 +250,8 @@ export interface User {
   isAdmin: boolean
   planName?: string | null
   planFeatures?: string[]
+  planExpiresAt?: string | null
+  planExpired?: boolean
   createdAt: string
   settings?: {
     id: string

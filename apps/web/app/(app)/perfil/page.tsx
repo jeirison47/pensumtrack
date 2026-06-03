@@ -321,7 +321,10 @@ export default function PerfilPage() {
             <div className="text-left">
               <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Mi plan</p>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                {user?.planName ?? 'Sin plan asignado'}
+                {user?.planName ?? 'Plan gratis'}
+                {user?.planExpiresAt && (
+                  <> · vence {new Date(user.planExpiresAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })}</>
+                )}
               </p>
             </div>
           </div>
@@ -332,6 +335,26 @@ export default function PerfilPage() {
 
         {showPlans && allPlans.length > 0 && (
           <div className="mt-3 space-y-3">
+            {(() => {
+              if (user?.planExpired) {
+                return (
+                  <div className="p-3 rounded-xl text-xs" style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}>
+                    Tu plan venció. Renueva el pago para reactivar las funciones premium.
+                  </div>
+                )
+              }
+              if (user?.planExpiresAt) {
+                const days = Math.ceil((new Date(user.planExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+                if (days <= 7) {
+                  return (
+                    <div className="p-3 rounded-xl text-xs" style={{ background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', color: '#eab308' }}>
+                      Tu plan vence en {days} {days === 1 ? 'día' : 'días'}. Renueva para no perder el acceso.
+                    </div>
+                  )
+                }
+              }
+              return null
+            })()}
             {allPlans.map((plan) => {
               const isCurrent = plan.name === user?.planName
               return (
@@ -388,14 +411,28 @@ export default function PerfilPage() {
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>Acceso básico — ver pensum y mapa</p>
                   )}
 
-                  {!isCurrent && (
-                    <button
-                      onClick={() => { setSelectedPlanName(plan.name); setSelectedPlanId(plan.id); setProofFile(null); setSubmitSuccess(false); setProofMethod('transfer'); setConfirmMethod('app'); setShowUpgradeModal(true) }}
-                      className="w-full py-2 rounded-xl text-sm font-semibold cursor-pointer"
-                      style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-                      Solicitar este plan
-                    </button>
-                  )}
+                  {(() => {
+                    const openModal = () => { setSelectedPlanName(plan.name); setSelectedPlanId(plan.id); setProofFile(null); setSubmitSuccess(false); setProofMethod('transfer'); setConfirmMethod('app'); setShowUpgradeModal(true) }
+                    if (!isCurrent) {
+                      return (
+                        <button onClick={openModal}
+                          className="w-full py-2 rounded-xl text-sm font-semibold cursor-pointer"
+                          style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                          Solicitar este plan
+                        </button>
+                      )
+                    }
+                    if (plan.price != null) {
+                      return (
+                        <button onClick={openModal}
+                          className="w-full py-2 rounded-xl text-sm font-semibold cursor-pointer"
+                          style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--pt-border)' }}>
+                          Renovar plan
+                        </button>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
               )
             })}

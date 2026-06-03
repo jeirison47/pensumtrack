@@ -23,8 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const upgradeReq = await prisma.planUpgradeRequest.findUnique({
     where: { id },
     include: {
-      user: { select: { id: true, email: true, displayName: true } },
-      plan: { select: { id: true, name: true } },
+      user: { select: { id: true, email: true, displayName: true, planId: true, planExpiresAt: true } },
+      plan: { select: { id: true, name: true, isDefault: true } },
     },
   })
   if (!upgradeReq) return NextResponse.json({ error: 'Solicitud no encontrada' }, { status: 404 })
@@ -36,9 +36,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     })
 
     if (status === 'APPROVED') {
+      // El plan gratis/por defecto no vence; los planes de pago duran 30 días.
+      let expiresAt: Date | null = null
+      if (!upgradeReq.plan.isDefault) {
+        // Si ya tiene el mismo plan vigente, extender desde su vencimiento;
+        // si no, contar desde hoy.
+        const current = upgradeReq.user.planExpiresAt
+        const samePlan = upgradeReq.user.planId === upgradeReq.planId
+        const base = samePlan && current && current.getTime() > Date.now() ? current : new Date()
+        expiresAt = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000)
+      }
+
       await tx.user.update({
         where: { id: upgradeReq.userId },
-        data: { planId: upgradeReq.planId },
+        data: { planId: upgradeReq.planId, planExpiresAt: expiresAt },
       })
     }
   })
