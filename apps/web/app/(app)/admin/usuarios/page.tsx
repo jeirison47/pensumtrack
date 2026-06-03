@@ -25,11 +25,11 @@ type AdminUser = {
   plan?: { id: string; name: string } | null
 }
 
-type Tab = 'usuarios' | 'planes' | 'solicitudes' | 'pensums' | 'carreras' | 'universidades' | 'profesores'
+type Tab = 'usuarios' | 'planes' | 'solicitudes' | 'pensums' | 'carreras' | 'universidades' | 'profesores' | 'pagos'
 
 const TAB_LABELS: Record<Tab, string> = {
   usuarios: 'Usuarios', planes: 'Planes', solicitudes: 'Solicitudes',
-  pensums: 'Pensums', carreras: 'Carreras', universidades: 'Universidades', profesores: 'Profesores',
+  pensums: 'Pensums', carreras: 'Carreras', universidades: 'Universidades', profesores: 'Profesores', pagos: 'Pagos',
 }
 
 export default function AdminPage() {
@@ -42,7 +42,7 @@ export default function AdminPage() {
       </h1>
 
       <div className="flex gap-1 p-1 rounded-xl flex-wrap" style={{ background: 'var(--surface2)' }}>
-        {(['usuarios', 'planes', 'solicitudes', 'pensums', 'carreras', 'universidades', 'profesores'] as Tab[]).map((t) => (
+        {(['usuarios', 'planes', 'solicitudes', 'pensums', 'carreras', 'universidades', 'profesores', 'pagos'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -64,6 +64,7 @@ export default function AdminPage() {
       {tab === 'universidades' && <UniversidadesTab />}
       {tab === 'carreras' && <CarrerasTab />}
       {tab === 'profesores' && <ProfesoresAdminTab />}
+      {tab === 'pagos' && <PagosAdminTab />}
     </div>
   )
 }
@@ -1690,6 +1691,162 @@ function ProfesoresAdminTab() {
                 )}
               </div>
             ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Pagos Admin Tab ──────────────────────────────────────────────────────────
+
+type UpgradeReq = {
+  id: string
+  method: string
+  proofUrl: string | null
+  proofName: string | null
+  status: string
+  adminNotes: string | null
+  createdAt: string
+  user: { id: string; displayName: string; email: string; username: string | null }
+  plan: { id: string; name: string; price: number | null }
+}
+
+function PagosAdminTab() {
+  const [requests, setRequests] = useState<UpgradeReq[]>([])
+  const [loading, setLoading] = useState(true)
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const [acting, setActing] = useState<string | null>(null)
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : ''
+  const authHdr = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin/plan-upgrade-requests', { headers: authHdr })
+      const j = await r.json()
+      setRequests(j.data ?? [])
+    } catch { toast.error('Error al cargar') }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function handle(id: string, status: 'APPROVED' | 'REJECTED') {
+    setActing(id)
+    try {
+      const res = await fetch(`/api/admin/plan-upgrade-requests/${id}`, {
+        method: 'PATCH', headers: authHdr,
+        body: JSON.stringify({ status, adminNotes: notes[id] || null }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+      toast.success(status === 'APPROVED' ? 'Plan activado' : 'Rechazado')
+      load()
+    } catch (err: any) { toast.error(err.message || 'Error') }
+    finally { setActing(null) }
+  }
+
+  const STATUS_LABELS: Record<string, string> = { PENDING: 'Pendiente', APPROVED: 'Aprobado', REJECTED: 'Rechazado' }
+  const STATUS_COLORS: Record<string, string> = { PENDING: '#f59e0b', APPROVED: '#10b981', REJECTED: '#f87171' }
+  const METHOD_LABELS: Record<string, string> = { transfer: 'Transferencia', paypal: 'PayPal' }
+
+  const pending = requests.filter((r) => r.status === 'PENDING').length
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          {pending > 0 ? (
+            <span style={{ color: '#f59e0b' }}>{pending} solicitud(es) pendiente(s)</span>
+          ) : 'Sin solicitudes pendientes'}
+        </p>
+        <button onClick={load} className="text-xs px-3 py-1.5 rounded-lg cursor-pointer hover:opacity-70"
+                style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+          Actualizar
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="py-10 flex justify-center">
+          <div className="w-6 h-6 border-2 rounded-full animate-spin"
+               style={{ borderTopColor: 'var(--accent)', borderColor: 'var(--pt-border)' }} />
+        </div>
+      ) : requests.length === 0 ? (
+        <div className="py-10 text-center">
+          <CreditCard size={32} className="mx-auto mb-2" style={{ color: 'var(--muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>No hay solicitudes de pago</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((r) => (
+            <div key={r.id} className="rounded-2xl p-4 space-y-3"
+                 style={{ background: 'var(--surface)', border: `1px solid ${r.status === 'PENDING' ? 'rgba(245,158,11,0.3)' : 'var(--pt-border)'}` }}>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{r.user.displayName}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: `${STATUS_COLORS[r.status]}20`, color: STATUS_COLORS[r.status] }}>
+                      {STATUS_LABELS[r.status]}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full"
+                          style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                      {METHOD_LABELS[r.method] ?? r.method}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                    {r.user.email} {r.user.username ? `· @${r.user.username}` : ''}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    Plan solicitado: <span style={{ color: 'var(--text)' }}>{r.plan.name}</span>
+                    {r.plan.price != null && ` ($${r.plan.price}/mes)`}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    {new Date(r.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Comprobante */}
+              {r.proofUrl && (
+                <a href={r.proofUrl} target="_blank" rel="noopener noreferrer"
+                   className="flex items-center gap-2 p-2 rounded-xl text-sm cursor-pointer hover:opacity-80"
+                   style={{ background: 'var(--surface2)', color: 'var(--accent)', border: '1px solid var(--pt-border)' }}>
+                  <Eye size={14} />
+                  Ver comprobante {r.proofName ? `· ${r.proofName}` : ''}
+                </a>
+              )}
+
+              {r.adminNotes && (
+                <p className="text-xs italic" style={{ color: 'var(--muted)' }}>Nota: {r.adminNotes}</p>
+              )}
+
+              {r.status === 'PENDING' && (
+                <div className="space-y-2">
+                  <input
+                    value={notes[r.id] ?? ''}
+                    onChange={(e) => setNotes((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                    placeholder="Nota opcional para el usuario..."
+                    className="w-full px-3 py-2 rounded-xl text-xs outline-none"
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={() => handle(r.id, 'APPROVED')} disabled={acting === r.id}
+                            className="flex-1 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer"
+                            style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
+                      {acting === r.id ? '...' : '✓ Aprobar y activar plan'}
+                    </button>
+                    <button onClick={() => handle(r.id, 'REJECTED')} disabled={acting === r.id}
+                            className="flex-1 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer"
+                            style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}>
+                      {acting === r.id ? '...' : 'Rechazar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -42,6 +42,11 @@ export default function PerfilPage() {
   const [showPlans, setShowPlans] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [selectedPlanName, setSelectedPlanName] = useState('')
+  const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [proofMethod, setProofMethod] = useState<'transfer' | 'paypal'>('transfer')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   const { data: plansData } = useQuery({
     queryKey: ['plans-public'],
@@ -376,7 +381,7 @@ export default function PerfilPage() {
 
                   {!isCurrent && (
                     <button
-                      onClick={() => { setSelectedPlanName(plan.name); setShowUpgradeModal(true) }}
+                      onClick={() => { setSelectedPlanName(plan.name); setSelectedPlanId(plan.id); setProofFile(null); setSubmitSuccess(false); setProofMethod('transfer'); setShowUpgradeModal(true) }}
                       className="w-full py-2 rounded-xl text-sm font-semibold cursor-pointer"
                       style={{ background: 'var(--accent)', color: '#0b0d12' }}>
                       Solicitar este plan
@@ -408,7 +413,7 @@ export default function PerfilPage() {
       {showUpgradeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
              style={{ background: 'rgba(0,0,0,0.7)' }}
-             onClick={() => setShowUpgradeModal(false)}>
+             onClick={() => { if (!submitting) setShowUpgradeModal(false) }}>
           <div className="w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90dvh] overflow-y-auto"
                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
                onClick={(e) => e.stopPropagation()}>
@@ -419,94 +424,146 @@ export default function PerfilPage() {
                   Solicitar plan {selectedPlanName}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                  Realiza una transferencia y envíanos el comprobante.
+                  Realiza el pago y sube el comprobante para activar tu plan.
                 </p>
               </div>
-              <button onClick={() => setShowUpgradeModal(false)} className="p-1 cursor-pointer hover:opacity-70 flex-shrink-0 ml-3"
+              <button onClick={() => setShowUpgradeModal(false)} disabled={submitting}
+                      className="p-1 cursor-pointer hover:opacity-70 flex-shrink-0 ml-3"
                       style={{ color: 'var(--muted)' }}>
                 <X size={18} />
               </button>
             </div>
 
-            {/* Cuentas bancarias */}
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Cuentas disponibles</p>
-
-              {[
-                { bank: 'Banreservas', account: '9602214062', color: '#10b981' },
-                { bank: 'Banco Popular', account: '849096342', color: '#38bdf8' },
-                { bank: 'QIK (BHD)', account: '1000162805', color: '#a78bfa' },
-              ].map(({ bank, account, color }) => (
-                <div key={bank} className="flex items-center justify-between p-3 rounded-xl"
-                     style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color }}>{bank}</p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Ahorro · Jeirison Volquez</p>
+            {submitSuccess ? (
+              <div className="py-6 flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                     style={{ background: 'rgba(16,185,129,0.12)' }}>✓</div>
+                <p className="font-semibold" style={{ color: 'var(--text)' }}>¡Solicitud enviada!</p>
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                  Revisaremos tu comprobante y activaremos el plan en menos de 24 horas. Te notificaremos por correo.
+                </p>
+                <button onClick={() => setShowUpgradeModal(false)}
+                        className="px-6 py-2.5 rounded-xl text-sm font-semibold cursor-pointer mt-2"
+                        style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                  Entendido
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Método de pago */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>¿Cómo vas a pagar?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([['transfer', 'Transferencia bancaria'], ['paypal', 'PayPal / Tarjeta']] as const).map(([val, label]) => (
+                      <button key={val} type="button" onClick={() => setProofMethod(val)}
+                              className="py-2.5 rounded-xl text-sm font-medium cursor-pointer"
+                              style={{
+                                background: proofMethod === val ? 'rgba(16,185,129,0.1)' : 'var(--surface2)',
+                                border: `1px solid ${proofMethod === val ? 'var(--accent)' : 'var(--pt-border)'}`,
+                                color: proofMethod === val ? 'var(--accent)' : 'var(--muted)',
+                              }}>
+                        {label}
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-sm font-mono font-bold" style={{ color: 'var(--text)' }}>{account}</p>
                 </div>
-              ))}
-            </div>
 
-            {/* Instrucciones de envío */}
-            <div className="p-3 rounded-xl space-y-2"
-                 style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Cómo enviar el comprobante</p>
-              <p className="text-xs" style={{ color: 'var(--text)' }}>
-                Envía el comprobante al correo o WhatsApp con la siguiente información:
-              </p>
-              <div className="text-xs space-y-0.5" style={{ color: 'var(--muted)' }}>
-                <p>📧 <span style={{ color: 'var(--accent)' }}>pensumtrackapp@gmail.com</span></p>
-                <p>💬 WhatsApp: <span style={{ color: 'var(--accent)' }}>809-980-9245</span></p>
-              </div>
-            </div>
+                {/* Datos según método */}
+                {proofMethod === 'transfer' ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Cuentas disponibles</p>
+                    {[
+                      { bank: 'Banreservas', account: '9602214062', color: '#10b981' },
+                      { bank: 'Banco Popular', account: '849096342', color: '#38bdf8' },
+                      { bank: 'QIK (BHD)', account: '1000162805', color: '#a78bfa' },
+                    ].map(({ bank, account, color }) => (
+                      <div key={bank} className="flex items-center justify-between p-3 rounded-xl"
+                           style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color }}>{bank}</p>
+                          <p className="text-xs" style={{ color: 'var(--muted)' }}>Ahorro · Jeirison Volquez</p>
+                        </div>
+                        <p className="text-sm font-mono font-bold" style={{ color: 'var(--text)' }}>{account}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <a href={`https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=jeirison46%40gmail.com&item_name=PensumTrack+Plan+${encodeURIComponent(selectedPlanName)}&currency_code=USD&no_shipping=1`}
+                       target="_blank" rel="noopener noreferrer"
+                       className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold cursor-pointer"
+                       style={{ background: '#0070ba', color: '#fff' }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.243-8.143 6.243H10.28c-.176 0-.33.127-.358.303L8.763 21.26l-.373 2.37a.38.38 0 0 0 .377.435h3.593c.458 0 .85-.334.922-.785l.038-.196.734-4.653.047-.257a.935.935 0 0 1 .922-.786h.58c3.762 0 6.705-1.528 7.566-5.948.36-1.845.174-3.386-.727-4.523z"/>
+                      </svg>
+                      Ir a PayPal
+                    </a>
+                    <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+                      Luego de pagar, toma un screenshot de la confirmación y súbelo abajo.
+                    </p>
+                  </div>
+                )}
 
-            {/* Ejemplo de correo */}
-            <div className="p-3 rounded-xl space-y-1.5"
-                 style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
-              <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>Ejemplo de cómo enviar el correo</p>
-              <div className="text-xs space-y-1" style={{ color: 'var(--muted)' }}>
-                <p><span style={{ color: 'var(--text)' }}>Asunto:</span> Solicitud de plan {selectedPlanName || '[nombre del plan]'} - PensumTrack</p>
-                <p><span style={{ color: 'var(--text)' }}>Cuerpo:</span></p>
-                <div className="ml-2 space-y-0.5">
-                  <p>Hola, realicé una transferencia para activar el plan <strong>{selectedPlanName || '[nombre del plan]'}</strong>.</p>
-                  <p>• Usuario en la app: <span style={{ color: 'var(--accent)' }}>{user?.username ?? user?.email ?? 'tu_usuario'}</span></p>
-                  <p>• Correo registrado: <span style={{ color: 'var(--accent)' }}>{user?.email ?? 'tu@correo.com'}</span></p>
-                  <p>• Banco usado: [banco donde transferiste]</p>
-                  <p>• Monto: $[monto]</p>
-                  <p>Adjunto el comprobante.</p>
+                {/* Subida de comprobante */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                    Comprobante de pago <span style={{ color: 'var(--danger)' }}>*</span>
+                  </p>
+                  <label className="flex flex-col items-center gap-2 p-4 rounded-xl cursor-pointer border-2 border-dashed transition-colors hover:opacity-80"
+                         style={{ borderColor: proofFile ? 'var(--accent)' : 'var(--pt-border)', background: proofFile ? 'rgba(16,185,129,0.06)' : 'var(--surface2)' }}>
+                    <input type="file" accept="image/*,.pdf" className="hidden"
+                           onChange={(e) => setProofFile(e.target.files?.[0] ?? null)} />
+                    {proofFile ? (
+                      <>
+                        <Check size={20} style={{ color: 'var(--accent)' }} />
+                        <p className="text-sm font-medium text-center" style={{ color: 'var(--accent)' }}>{proofFile.name}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Toca para cambiar</p>
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard size={20} style={{ color: 'var(--muted)' }} />
+                        <p className="text-sm" style={{ color: 'var(--muted)' }}>Toca para subir imagen o PDF</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Máx. 5 MB</p>
+                      </>
+                    )}
+                  </label>
                 </div>
-              </div>
-            </div>
 
-            {/* Botón PayPal */}
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Pagar con tarjeta / PayPal</p>
-              <a
-                href={`https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=jeirison46%40gmail.com&item_name=PensumTrack+Plan+${encodeURIComponent(selectedPlanName)}&currency_code=USD&no_shipping=1`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold cursor-pointer"
-                style={{ background: '#0070ba', color: '#fff' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.243-8.143 6.243H10.28c-.176 0-.33.127-.358.303L8.763 21.26l-.373 2.37a.38.38 0 0 0 .377.435h3.593c.458 0 .85-.334.922-.785l.038-.196.734-4.653.047-.257a.935.935 0 0 1 .922-.786h.58c3.762 0 6.705-1.528 7.566-5.948.36-1.845.174-3.386-.727-4.523z"/>
-                </svg>
-                Pagar con PayPal
-              </a>
-              <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-                Después del pago, envíanos el screenshot de confirmación al correo o WhatsApp indicados arriba.
-              </p>
-            </div>
+                <button
+                  disabled={!proofFile || submitting}
+                  onClick={async () => {
+                    if (!proofFile || !selectedPlanId) return
+                    setSubmitting(true)
+                    try {
+                      const token = localStorage.getItem('token')
+                      const fd = new FormData()
+                      fd.append('planId', selectedPlanId)
+                      fd.append('method', proofMethod)
+                      fd.append('proof', proofFile)
+                      const res = await fetch('/api/plan-upgrade-requests', {
+                        method: 'POST',
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                        body: fd,
+                      })
+                      const json = await res.json()
+                      if (!res.ok) throw new Error(json.error)
+                      setSubmitSuccess(true)
+                    } catch (err: unknown) {
+                      toast.error(err instanceof Error ? err.message : 'Error al enviar')
+                    } finally {
+                      setSubmitting(false)
+                    }
+                  }}
+                  className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer"
+                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                  {submitting ? 'Enviando...' : 'Enviar solicitud'}
+                </button>
 
-            <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-              Confirmaremos la activación en menos de 24 horas.
-            </p>
-
-            <button onClick={() => setShowUpgradeModal(false)}
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
-                    style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
-              Cerrar
-            </button>
+                <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+                  Confirmaremos la activación en menos de 24 horas.
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
