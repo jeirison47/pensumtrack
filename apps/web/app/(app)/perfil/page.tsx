@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi, userApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
-import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked, CreditCard, X, Lock } from 'lucide-react'
+import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked, CreditCard, X, Lock, Home } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePlan } from '@/hooks/usePlan'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
@@ -413,6 +413,14 @@ export default function PerfilPage() {
               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
         <BookMarked size={16} />
         Solicitar agregar carrera o pensum
+      </button>
+
+      {/* Ir a la landing */}
+      <button onClick={() => router.push('/')}
+              className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium mb-3"
+              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
+        <Home size={16} />
+        Volver a inicio
       </button>
 
       {/* Cerrar sesión */}
