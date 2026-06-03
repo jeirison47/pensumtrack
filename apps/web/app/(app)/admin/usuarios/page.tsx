@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search, Shield, ShieldOff, UserCheck, UserX, Users, BookOpen, GraduationCap,
   ChevronLeft, ChevronRight, Plus, Trash2, CreditCard, Tag, KeyRound,
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react'
 import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus, type UniversityAdmin, type CareerAdmin } from '@/services/api'
 import { PENSUM_TEMPLATE, PERIOD_LABELS } from '@/lib/parsePensum'
+import { FEATURE_KEYS, FEATURE_LABELS } from '@/lib/features'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import toast from 'react-hot-toast'
 
@@ -521,130 +523,49 @@ function UsersTab() {
 // ─── Plans Tab ────────────────────────────────────────────────────────────────
 
 function PlansTab() {
+  const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [featuresInput, setFeaturesInput] = useState('')
-  const [isDefault, setIsDefault] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null)
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : ''
+  const authHdr = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
   const fetchPlans = useCallback(async () => {
     setLoading(true)
-    try {
-      const r = await adminApi.listPlans()
-      setPlans(r.data)
-    } catch {
-      toast.error('Error al cargar planes')
-    } finally {
-      setLoading(false)
-    }
+    try { setPlans((await adminApi.listPlans()).data) }
+    catch { toast.error('Error al cargar planes') }
+    finally { setLoading(false) }
   }, [])
 
   useEffect(() => { fetchPlans() }, [fetchPlans])
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    setCreating(true)
-    try {
-      const features = featuresInput.split(',').map((f) => f.trim()).filter(Boolean)
-      await adminApi.createPlan({ name, description, features, isDefault })
-      toast.success('Plan creado')
-      setShowForm(false)
-      setName(''); setDescription(''); setFeaturesInput(''); setIsDefault(false)
-      fetchPlans()
-    } catch (err: any) {
-      toast.error(err.message || 'Error al crear plan')
-    } finally {
-      setCreating(false)
-    }
-  }
-
   async function handleDelete(plan: Plan) {
     try {
-      await adminApi.deletePlan(plan.id)
+      const res = await fetch(`/api/admin/plans/${plan.id}`, { method: 'DELETE', headers: authHdr })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
       setPlans((prev) => prev.filter((p) => p.id !== plan.id))
       toast.success('Plan eliminado')
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar')
-    } finally {
-      setDeleteTarget(null)
-    }
+    } catch (err: any) { toast.error(err.message || 'Error al eliminar') }
+    finally { setDeleteTarget(null) }
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: 'var(--muted)' }}>{plans.length} plan(es) configurados</p>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-          style={{ background: 'var(--accent)', color: '#0b0d12' }}
-        >
-          <Plus size={14} />
-          Nuevo plan
+        <button onClick={() => router.push('/admin/planes/nuevo')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer hover:opacity-80"
+                style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+          <Plus size={14} /> Nuevo plan
         </button>
       </div>
-
-      {showForm && (
-        <form onSubmit={handleCreate} className="rounded-2xl p-4 space-y-3"
-          style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Crear plan</p>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            placeholder="Nombre del plan (ej: Gratis, Pro)"
-            className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-            style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
-          />
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Descripción (opcional)"
-            className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-            style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
-          />
-          <div>
-            <input
-              value={featuresInput}
-              onChange={(e) => setFeaturesInput(e.target.value)}
-              placeholder="Features separadas por comas (ej: export_pdf, multiple_careers)"
-              className="w-full px-3 py-2 rounded-xl text-sm outline-none"
-              style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
-            />
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Claves de features separadas por coma</p>
-          </div>
-          <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
-            <input
-              type="checkbox"
-              checked={isDefault}
-              onChange={(e) => setIsDefault(e.target.checked)}
-              className="rounded"
-            />
-            Plan por defecto (se asigna al registrarse)
-          </label>
-          <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => setShowForm(false)}
-              className="px-3 py-1.5 rounded-xl text-sm"
-              style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={creating}
-              className="px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-60"
-              style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-              {creating ? 'Creando...' : 'Crear'}
-            </button>
-          </div>
-        </form>
-      )}
 
       {loading ? (
         <div className="py-10 flex justify-center">
           <div className="w-6 h-6 border-2 rounded-full animate-spin"
-            style={{ borderTopColor: 'var(--accent)', borderRightColor: 'var(--pt-border)', borderBottomColor: 'var(--pt-border)', borderLeftColor: 'var(--pt-border)' }} />
+               style={{ borderTopColor: 'var(--accent)', borderColor: 'var(--pt-border)' }} />
         </div>
       ) : plans.length === 0 ? (
         <div className="py-10 text-center space-y-2">
@@ -654,47 +575,58 @@ function PlansTab() {
       ) : (
         <div className="space-y-3">
           {plans.map((plan) => (
-            <div key={plan.id} className="rounded-2xl p-4"
-              style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+            <div key={plan.id} className="rounded-2xl p-4 space-y-3"
+                 style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{plan.name}</p>
+                    <p className="font-semibold" style={{ color: 'var(--text)' }}>{plan.name}</p>
+                    {plan.price != null && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                            style={{ background: 'rgba(56,189,248,0.12)', color: 'var(--accent2)' }}>
+                        ${plan.price}/mes
+                      </span>
+                    )}
                     {plan.isDefault && (
                       <span className="text-xs px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
+                            style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
                         Por defecto
                       </span>
                     )}
-                    <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                      {plan._count.users} usuario(s)
-                    </span>
+                    <span className="text-xs" style={{ color: 'var(--muted)' }}>{plan._count.users} usuario(s)</span>
                   </div>
-                  {plan.description && (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{plan.description}</p>
-                  )}
-                  {plan.features.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {plan.features.map((f) => (
-                        <span key={f.id}
-                          className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-                          style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-                          <Tag size={10} />
-                          {f.featureKey}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {plan.description && <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{plan.description}</p>}
                 </div>
-                <button
-                  onClick={() => setDeleteTarget(plan)}
-                  className="p-1.5 rounded-lg transition hover:opacity-70 flex-shrink-0"
-                  style={{ color: 'var(--danger)' }}
-                  title="Eliminar plan"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button onClick={() => router.push(`/admin/planes/${plan.id}/editar`)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70 cursor-pointer"
+                          style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                    Editar
+                  </button>
+                  <button onClick={() => setDeleteTarget(plan)}
+                          className="p-1.5 rounded-lg hover:opacity-70 cursor-pointer"
+                          style={{ color: 'var(--danger)' }} title="Eliminar">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
+
+              {plan.features.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
+                  {plan.features.map((f) => {
+                    const label = FEATURE_LABELS[f.featureKey as keyof typeof FEATURE_LABELS]
+                    return (
+                      <span key={f.id} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
+                            style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--accent)' }}>
+                        <Check size={10} style={{ flexShrink: 0 }} />
+                        <span className="truncate">{label?.label ?? f.featureKey}</span>
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Plan base — sin funcionalidades adicionales</p>
+              )}
             </div>
           ))}
         </div>
@@ -703,8 +635,7 @@ function PlansTab() {
       <ConfirmModal
         open={!!deleteTarget}
         message={`¿Eliminar el plan "${deleteTarget?.name}"? Esta acción no se puede deshacer.`}
-        confirmLabel="Eliminar"
-        dangerous
+        confirmLabel="Eliminar" dangerous
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
+import { useProgressStore } from '@/store/useProgressStore'
 import { LayoutDashboard, BookOpen, GitBranch, CheckSquare, CircleUser, Moon, Sun, Shield, GraduationCap } from 'lucide-react'
 
 const nav = [
@@ -18,6 +19,8 @@ export function TopNav() {
   const pathname = usePathname()
   const { user } = useAuthStore()
   const { theme, toggle } = useThemeStore()
+  const { profile } = useProgressStore()
+  const hasProfile = profile !== null
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-3 md:py-4"
@@ -32,7 +35,7 @@ export function TopNav() {
 
       {/* Nav links — desktop only */}
       <nav className="hidden md:flex items-center gap-1">
-        {!user?.isAdmin && nav.map(({ href, label, icon: Icon }) => {
+        {!user?.isAdmin && hasProfile && nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link key={href} href={href}

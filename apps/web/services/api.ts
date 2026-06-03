@@ -262,6 +262,7 @@ export interface Plan {
   id: string
   name: string
   description: string | null
+  price: number | null
   isDefault: boolean
   createdAt: string
   features: { id: string; featureKey: string }[]

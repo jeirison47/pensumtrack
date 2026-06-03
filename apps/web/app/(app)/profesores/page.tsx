@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, Star, MessageSquare, GraduationCap, Building2 } from 'lucide-react'
 import { universityApi, type UniversitySummary } from '@/services/api'
+import { usePlan } from '@/hooks/usePlan'
+import { PlanGateModal } from '@/components/ui/PlanGateModal'
 
 interface ProfessorCard {
   id: string
@@ -25,6 +27,8 @@ const SCHEDULE_LABELS: Record<string, string> = {
 
 export default function ProfesoresPage() {
   const router = useRouter()
+  const { hasFeature } = usePlan()
+  const [gateModal, setGateModal] = useState<{ open: boolean; label?: string }>({ open: false })
   const [professors, setProfessors] = useState<ProfessorCard[]>([])
   const [universities, setUniversities] = useState<UniversitySummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -135,7 +139,7 @@ export default function ProfesoresPage() {
           {professors.map((p) => (
             <button
               key={p.id}
-              onClick={() => router.push(`/profesores/${p.id}`)}
+              onClick={() => { if (!hasFeature('professor_detail')) { setGateModal({ open: true, label: 'Detalle de profesores' }); return } router.push(`/profesores/${p.id}`) }}
               className="w-full text-left p-4 rounded-2xl transition-opacity hover:opacity-80 cursor-pointer"
               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
             >
@@ -191,6 +195,8 @@ export default function ProfesoresPage() {
           ))}
         </div>
       )}
+      <PlanGateModal open={gateModal.open} featureLabel={gateModal.label}
+                     onClose={() => setGateModal({ open: false })} />
     </div>
   )
 }

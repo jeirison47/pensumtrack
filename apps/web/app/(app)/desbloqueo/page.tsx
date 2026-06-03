@@ -6,6 +6,8 @@ import { SubjectModal } from '@/components/layout/SubjectModal'
 import { getUnlockedBySubject } from '@pensumtrack/utils'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import { Unlock, Lock, ChevronRight } from 'lucide-react'
+import { usePlan } from '@/hooks/usePlan'
+import { FeatureLockedPage } from '@/components/ui/FeatureLockedPage'
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(56,189,248,0.15)',  border: '#38bdf8', text: '#38bdf8' },
@@ -13,9 +15,11 @@ const STATUS_COLORS = {
 }
 
 export default function DesbloqueoPage() {
+  const { hasFeature } = usePlan()
   const { profile, isLoading, getSubjectStatus, preselectedCodes, allSubjects } = useProgress()
   const [selected, setSelected] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
+  if (!hasFeature('unlock_view')) return <FeatureLockedPage feature="Vista de desbloqueo" />
 
   const studentSubjects = useMemo(() =>
     (profile?.subjects ?? []).map((s) => ({

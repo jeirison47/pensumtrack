@@ -5,13 +5,18 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi, userApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
-import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked } from 'lucide-react'
+import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked, CreditCard, X, Lock } from 'lucide-react'
+import { usePlan } from '@/hooks/usePlan'
+import { PlanGateModal } from '@/components/ui/PlanGateModal'
 import { Modal } from '@/components/ui/Modal'
+import { FEATURE_LABELS } from '@/lib/features'
+import type { FeatureKey } from '@/lib/features'
 
 export default function PerfilPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, updateUser, logout } = useAuthStore()
+  const { hasFeature } = usePlan()
 
   // ─── Editar nombre ─────────────────────────────────────────────────────────
   const [editingName, setEditingName] = useState(false)
@@ -33,8 +38,20 @@ export default function PerfilPage() {
   const [switchingId, setSwitchingId] = useState<string | null>(null)
   const [confirmSwitchId, setConfirmSwitchId] = useState<string | null>(null)
 
+  // ─── Planes ────────────────────────────────────────────────────────────────
+  const [showPlans, setShowPlans] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [selectedPlanName, setSelectedPlanName] = useState('')
+
+  const { data: plansData } = useQuery({
+    queryKey: ['plans-public'],
+    queryFn: () => fetch('/api/plans').then((r) => r.json()),
+  })
+  const allPlans: { id: string; name: string; description: string | null; price: number | null; isDefault: boolean; features: { featureKey: string }[] }[] = plansData?.data ?? []
+
   // ─── Logout ────────────────────────────────────────────────────────────────
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [careerGateOpen, setCareerGateOpen] = useState(false)
 
   const { data: profilesData, isLoading: profilesLoading } = useQuery({
     queryKey: ['profiles'],
@@ -212,10 +229,10 @@ export default function PerfilPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
             Mis carreras
           </h2>
-          <button onClick={() => router.push('/onboarding?mode=add')}
+          <button onClick={() => { if (!hasFeature('multiple_careers')) { setCareerGateOpen(true); return } router.push('/onboarding?mode=add') }}
                   className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl"
                   style={{ background: 'var(--surface2)', color: 'var(--accent)' }}>
-            <Plus size={13} />
+            {hasFeature('multiple_careers') ? <Plus size={13} /> : <Lock size={13} />}
             Agregar
           </button>
         </div>
@@ -285,6 +302,93 @@ export default function PerfilPage() {
         )}
       </div>
 
+      {/* Mi plan */}
+      <div className="mb-6">
+        <button onClick={() => setShowPlans((v) => !v)}
+                className="flex items-center justify-between w-full p-4 rounded-2xl cursor-pointer"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <div className="flex items-center gap-3">
+            <CreditCard size={18} style={{ color: 'var(--accent)' }} />
+            <div className="text-left">
+              <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Mi plan</p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                {user?.planName ?? 'Sin plan asignado'}
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={16}
+                        className={`transition-transform ${showPlans ? 'rotate-90' : ''}`}
+                        style={{ color: 'var(--muted)' }} />
+        </button>
+
+        {showPlans && allPlans.length > 0 && (
+          <div className="mt-3 space-y-3">
+            {allPlans.map((plan) => {
+              const isCurrent = plan.name === user?.planName
+              return (
+                <div key={plan.id} className="p-4 rounded-2xl space-y-3"
+                     style={{
+                       background: isCurrent ? 'rgba(16,185,129,0.06)' : 'var(--surface)',
+                       border: `1px solid ${isCurrent ? 'var(--accent)' : 'var(--pt-border)'}`,
+                     }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{plan.name}</p>
+                        {isCurrent && (
+                          <span className="text-xs px-2 py-0.5 rounded-full"
+                                style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent)' }}>
+                            Tu plan actual
+                          </span>
+                        )}
+                      </div>
+                      {plan.description && (
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{plan.description}</p>
+                      )}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      {plan.price != null ? (
+                        <p className="text-base font-bold" style={{ color: 'var(--text)' }}>
+                          ${plan.price}<span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/mes</span>
+                        </p>
+                      ) : (
+                        <p className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>Gratis</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {plan.features.length > 0 ? (
+                    <div className="space-y-1">
+                      {plan.features.map((f) => {
+                        const label = FEATURE_LABELS[f.featureKey as FeatureKey]
+                        return (
+                          <div key={f.featureKey} className="flex items-center gap-2 text-xs"
+                               style={{ color: 'var(--muted)' }}>
+                            <Check size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                            {label?.label ?? f.featureKey}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Acceso básico — ver pensum y mapa</p>
+                  )}
+
+                  {!isCurrent && (
+                    <button
+                      onClick={() => { setSelectedPlanName(plan.name); setShowUpgradeModal(true) }}
+                      className="w-full py-2 rounded-xl text-sm font-semibold cursor-pointer"
+                      style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                      Solicitar este plan
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <button onClick={() => router.push('/solicitar')}
               className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium mb-3"
               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
@@ -299,6 +403,51 @@ export default function PerfilPage() {
         <LogOut size={16} />
         Cerrar sesión
       </button>
+
+      {/* Modal solicitar cambio de plan */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style={{ background: 'rgba(0,0,0,0.7)' }}
+             onClick={() => setShowUpgradeModal(false)}>
+          <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
+               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+                   style={{ background: 'rgba(16,185,129,0.1)' }}>
+                <CreditCard size={20} style={{ color: 'var(--accent)' }} />
+              </div>
+              <button onClick={() => setShowUpgradeModal(false)} className="p-1 cursor-pointer hover:opacity-70"
+                      style={{ color: 'var(--muted)' }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div>
+              <p className="font-bold" style={{ color: 'var(--text)' }}>
+                Solicitar plan {selectedPlanName}
+              </p>
+              <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                Para activar este plan, realiza el pago mediante transferencia bancaria y envíanos el comprobante.
+              </p>
+            </div>
+            <div className="p-3 rounded-xl space-y-1.5 text-sm"
+                 style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+              <p className="font-medium text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>
+                Datos de pago
+              </p>
+              <p style={{ color: 'var(--text)' }}>📧 Email: <span style={{ color: 'var(--accent)' }}>pagos@pensumtrack.app</span></p>
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
+                Incluye tu nombre de usuario y el plan que deseas al enviar el comprobante. Te confirmaremos la activación en menos de 24 horas.
+              </p>
+            </div>
+            <button onClick={() => setShowUpgradeModal(false)}
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
+                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal confirmación cambio de carrera */}
       <Modal open={!!confirmSwitchId} onClose={() => setConfirmSwitchId(null)}>
@@ -362,6 +511,9 @@ export default function PerfilPage() {
           </button>
         </div>
       </Modal>
+
+      <PlanGateModal open={careerGateOpen} featureLabel="Múltiples carreras"
+                     onClose={() => setCareerGateOpen(false)} />
     </div>
   )
 }

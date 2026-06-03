@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { usePlan } from '@/hooks/usePlan'
+import { FeatureLockedPage } from '@/components/ui/FeatureLockedPage'
 
 const PERIOD_OPTIONS = [
   { value: 'semester', label: 'Semestral' },
@@ -13,6 +15,8 @@ const PERIOD_OPTIONS = [
 
 export default function SolicitarPage() {
   const router = useRouter()
+  const { hasFeature } = usePlan()
+  if (!hasFeature('pensum_request')) return <FeatureLockedPage feature="Solicitar agregar pensum" />
   const [university, setUniversity] = useState('')
   const [career, setCareer] = useState('')
   const [year, setYear] = useState('')

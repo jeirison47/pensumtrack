@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, BookOpen, GitBranch, CheckSquare, Shield, GraduationCap } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useProgressStore } from '@/store/useProgressStore'
 
 const studentNav = [
   { href: '/dashboard',    label: 'Inicio',  icon: LayoutDashboard },
@@ -20,8 +21,11 @@ const adminNav = [
 export function BottomNav() {
   const pathname = usePathname()
   const { user } = useAuthStore()
+  const { profile } = useProgressStore()
+  const hasProfile = profile !== null
 
-  const nav = user?.isAdmin ? adminNav : studentNav
+  const fullStudentNav = hasProfile ? studentNav : studentNav.filter((n) => n.href === '/dashboard')
+  const nav = user?.isAdmin ? adminNav : fullStudentNav
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden"

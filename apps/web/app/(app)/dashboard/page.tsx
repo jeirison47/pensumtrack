@@ -8,14 +8,18 @@ import { progressApi } from '@/services/api'
 import { useProgressStore } from '@/store/useProgressStore'
 import { BookOpen, CheckCircle, Clock, Star, TrendingUp, GraduationCap, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { usePlan } from '@/hooks/usePlan'
+import { PlanGateModal } from '@/components/ui/PlanGateModal'
 
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
   const { profile, isLoading, getSubjectStatus, invalidateProgress, allSubjects } = useProgress()
   const { updateSubjectLocally } = useProgressStore()
+  const { hasFeature } = usePlan()
   const [approvingCode, setApprovingCode] = useState<string | null>(null)
   const [gradeInput, setGradeInput] = useState('')
+  const [gateModal, setGateModal] = useState<{ open: boolean; label?: string }>({ open: false })
 
   useEffect(() => {
     if (user?.isAdmin) router.replace('/admin')
@@ -129,30 +133,42 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        {stats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-            <Icon size={18} style={{ color }} className="mb-2" />
-            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{value}</p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>{label}</p>
+      {hasFeature('dashboard_stats') ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {stats.map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <Icon size={18} style={{ color }} className="mb-2" />
+                <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{value}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>{label}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Promedio e índice */}
-      {promedio != null && (
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-            <TrendingUp size={18} style={{ color: 'var(--purple)' }} className="mb-2" />
-            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{promedio.toFixed(2)}</p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>Promedio (0–100)</p>
+          {promedio != null && (
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <TrendingUp size={18} style={{ color: 'var(--purple)' }} className="mb-2" />
+                <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{promedio.toFixed(2)}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Promedio (0–100)</p>
+              </div>
+              <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <TrendingUp size={18} style={{ color: 'var(--accent2)' }} className="mb-2" />
+                <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{indice!.toFixed(2)}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>Índice estimado (0–4.0)</p>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <button onClick={() => setGateModal({ open: true, label: 'Estadísticas de progreso' })}
+                className="w-full p-4 rounded-2xl mb-4 flex items-center justify-between cursor-pointer hover:opacity-80"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+          <div className="flex items-center gap-3">
+            <TrendingUp size={18} style={{ color: 'var(--muted)' }} />
+            <span className="text-sm" style={{ color: 'var(--muted)' }}>Ver estadísticas, promedios e índice</span>
           </div>
-          <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-            <TrendingUp size={18} style={{ color: 'var(--accent2)' }} className="mb-2" />
-            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>{indice!.toFixed(2)}</p>
-            <p className="text-xs" style={{ color: 'var(--muted)' }}>Índice estimado (0–4.0)</p>
-          </div>
-        </div>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}>Premium</span>
+        </button>
       )}
 
       {/* Preselección rápida */}
@@ -185,7 +201,7 @@ export default function DashboardPage() {
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>{s.code} · {s.credits} créditos</p>
                   </div>
                   {approvingCode !== s.code && (
-                    <button onClick={() => { setApprovingCode(s.code); setGradeInput('') }}
+                    <button onClick={() => { if (!hasFeature('subject_status_update')) { setGateModal({ open: true, label: 'Marcar materias' }); return } setApprovingCode(s.code); setGradeInput('') }}
                             className="text-xs px-3 py-1.5 rounded-lg font-medium"
                             style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent)' }}>
                       Aprobar
@@ -226,6 +242,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <PlanGateModal open={gateModal.open} featureLabel={gateModal.label}
+                     onClose={() => setGateModal({ open: false })} />
     </div>
   )
 }

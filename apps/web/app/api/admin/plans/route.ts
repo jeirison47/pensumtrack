@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const caller = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } })
   if (!caller?.isAdmin) return forbidden()
 
-  const { name, description, features, isDefault } = await request.json()
+  const { name, description, price, features, isDefault } = await request.json()
 
   if (!name?.trim()) {
     return NextResponse.json({ error: 'El nombre del plan es requerido' }, { status: 400 })
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: name.trim(),
       description: description?.trim() || null,
+      price: price != null ? Number(price) : null,
       isDefault: Boolean(isDefault),
       features: {
         create: (features ?? []).map((key: string) => ({ featureKey: key.trim() })),

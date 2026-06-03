@@ -8,6 +8,8 @@ import type { PreselectionDB } from '@/services/api'
 import { validatePreselection } from '@pensumtrack/utils'
 import { SubjectModal } from '@/components/layout/SubjectModal'
 import { Modal } from '@/components/ui/Modal'
+import { FeatureLockedPage } from '@/components/ui/FeatureLockedPage'
+import { usePlan } from '@/hooks/usePlan'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import {
   AlertTriangle, CheckCircle, Plus, Trash2, ChevronDown, ChevronUp,
@@ -33,6 +35,7 @@ function statusBadge(status: PreselectionDB['status']) {
 // ─── Página principal ──────────────────────────────────────────────────────────
 
 export default function PreseleccionPage() {
+  const { hasFeature } = usePlan()
   const { profile, isLoading, getSubjectStatus, invalidateProgress, allSubjects: hookSubjects } = useProgress()
   const {
     updatePreselectionSubjectsLocally,
@@ -210,6 +213,8 @@ export default function PreseleccionPage() {
            style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
     </div>
   )
+
+  if (!hasFeature('preselection')) return <FeatureLockedPage feature="Preselección de materias" />
 
   // ─── Resumen (sidebar / bottom sheet) ─────────────────────────────────────
 

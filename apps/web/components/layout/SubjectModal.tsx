@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle, XCircle, Lock, Clock, Star, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import { usePlan } from '@/hooks/usePlan'
+import { PlanGateModal } from '@/components/ui/PlanGateModal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import type { SubjectStatusDB } from '@/services/api'
 
@@ -87,6 +89,8 @@ export function SubjectModal({
 }: Props) {
   const [gradeInput, setGradeInput] = useState('')
   const [awaitingGrade, setAwaitingGrade] = useState(false)
+  const [gateOpen, setGateOpen] = useState(false)
+  const { hasFeature } = usePlan()
 
   useEffect(() => {
     setGradeInput('')
@@ -278,6 +282,7 @@ export function SubjectModal({
             actions.map((action) => (
               <button key={action.next}
                       onClick={() => {
+                        if (!hasFeature('subject_status_update')) { setGateOpen(true); return }
                         if (action.next === 'PASSED') {
                           setGradeInput('')
                           setAwaitingGrade(true)
@@ -311,10 +316,14 @@ export function SubjectModal({
   )
 
   return (
-    <Modal open={!!subject} onClose={onClose} maxWidth="max-w-md">
-      <div className="overflow-y-auto max-h-[80dvh]">
-        {content}
-      </div>
-    </Modal>
+    <>
+      <Modal open={!!subject} onClose={onClose} maxWidth="max-w-md">
+        <div className="overflow-y-auto max-h-[80dvh]">
+          {content}
+        </div>
+      </Modal>
+      <PlanGateModal open={gateOpen} featureLabel="Marcar materias"
+                     onClose={() => setGateOpen(false)} />
+    </>
   )
 }
