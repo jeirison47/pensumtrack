@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   const form = await req.formData()
   const planId = form.get('planId') as string
   const method = form.get('method') as string
+  const confirmMethod = (form.get('confirmMethod') as string) || 'app'
   const file = form.get('proof') as File | null
 
   if (!planId || !method) {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   const request = await prisma.planUpgradeRequest.create({
-    data: { userId, planId, method, proofUrl, proofName },
+    data: { userId, planId, method, confirmMethod, proofUrl, proofName },
   })
 
   return NextResponse.json({ data: request }, { status: 201 })

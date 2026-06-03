@@ -1702,6 +1702,7 @@ function ProfesoresAdminTab() {
 type UpgradeReq = {
   id: string
   method: string
+  confirmMethod: string | null
   proofUrl: string | null
   proofName: string | null
   status: string
@@ -1750,6 +1751,7 @@ function PagosAdminTab() {
   const STATUS_LABELS: Record<string, string> = { PENDING: 'Pendiente', APPROVED: 'Aprobado', REJECTED: 'Rechazado' }
   const STATUS_COLORS: Record<string, string> = { PENDING: '#f59e0b', APPROVED: '#10b981', REJECTED: '#f87171' }
   const METHOD_LABELS: Record<string, string> = { transfer: 'Transferencia', paypal: 'PayPal' }
+  const CONFIRM_LABELS: Record<string, string> = { app: '📎 Comprobante en app', email: '📧 Enviará por correo/WhatsApp' }
 
   const pending = requests.filter((r) => r.status === 'PENDING').length
 
@@ -1794,6 +1796,12 @@ function PagosAdminTab() {
                           style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
                       {METHOD_LABELS[r.method] ?? r.method}
                     </span>
+                    {r.confirmMethod && (
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                            style={{ background: r.confirmMethod === 'email' ? 'rgba(245,158,11,0.12)' : 'rgba(56,189,248,0.12)', color: r.confirmMethod === 'email' ? '#f59e0b' : 'var(--accent2)' }}>
+                        {CONFIRM_LABELS[r.confirmMethod] ?? r.confirmMethod}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                     {r.user.email} {r.user.username ? `· @${r.user.username}` : ''}

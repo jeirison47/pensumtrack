@@ -313,7 +313,8 @@ model PlanUpgradeRequest {
   id         String   @id @default(cuid())
   userId     String
   planId     String
-  method     String   // 'transfer' | 'paypal'
+  method         String   // 'transfer' | 'paypal'
+  confirmMethod  String   @default("app") // 'app' | 'email'
   proofUrl   String?
   proofName  String?
   status     String   @default("PENDING") // PENDING | APPROVED | REJECTED

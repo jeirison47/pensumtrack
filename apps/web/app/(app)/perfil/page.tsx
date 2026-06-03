@@ -45,6 +45,7 @@ export default function PerfilPage() {
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [proofMethod, setProofMethod] = useState<'transfer' | 'paypal'>('transfer')
+  const [confirmMethod, setConfirmMethod] = useState<'app' | 'email'>('app')
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
@@ -381,7 +382,7 @@ export default function PerfilPage() {
 
                   {!isCurrent && (
                     <button
-                      onClick={() => { setSelectedPlanName(plan.name); setSelectedPlanId(plan.id); setProofFile(null); setSubmitSuccess(false); setProofMethod('transfer'); setShowUpgradeModal(true) }}
+                      onClick={() => { setSelectedPlanName(plan.name); setSelectedPlanId(plan.id); setProofFile(null); setSubmitSuccess(false); setProofMethod('transfer'); setConfirmMethod('app'); setShowUpgradeModal(true) }}
                       className="w-full py-2 rounded-xl text-sm font-semibold cursor-pointer"
                       style={{ background: 'var(--accent)', color: '#0b0d12' }}>
                       Solicitar este plan
@@ -468,6 +469,38 @@ export default function PerfilPage() {
                   </div>
                 </div>
 
+                {/* Método de confirmación */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>¿Cómo vas a enviar el comprobante?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ['app', '📎 Subirlo aquí en la app'],
+                      ['email', '📧 Por correo o WhatsApp'],
+                    ] as const).map(([val, label]) => (
+                      <button key={val} type="button" onClick={() => setConfirmMethod(val)}
+                              className="py-2.5 px-3 rounded-xl text-xs font-medium cursor-pointer text-left"
+                              style={{
+                                background: confirmMethod === val ? 'rgba(16,185,129,0.1)' : 'var(--surface2)',
+                                border: `1px solid ${confirmMethod === val ? 'var(--accent)' : 'var(--pt-border)'}`,
+                                color: confirmMethod === val ? 'var(--accent)' : 'var(--muted)',
+                              }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {confirmMethod === 'email' && (
+                    <div className="p-3 rounded-xl text-xs space-y-1"
+                         style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+                      <p style={{ color: 'var(--text)' }}>Envía el comprobante a:</p>
+                      <p>📧 <span style={{ color: 'var(--accent)' }}>pensumtrackapp@gmail.com</span></p>
+                      <p>💬 WhatsApp: <span style={{ color: 'var(--accent)' }}>809-980-9245</span></p>
+                      <p className="pt-1" style={{ color: 'var(--muted)' }}>
+                        Incluye tu usuario <strong style={{ color: 'var(--text)' }}>{user?.username ?? user?.email}</strong> y el plan <strong style={{ color: 'var(--text)' }}>{selectedPlanName}</strong> en el mensaje.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Datos según método */}
                 {proofMethod === 'transfer' ? (
                   <div className="space-y-1.5">
@@ -504,10 +537,10 @@ export default function PerfilPage() {
                   </div>
                 )}
 
-                {/* Subida de comprobante */}
-                <div className="space-y-2">
+                {/* Subida de comprobante — solo si elige subir en la app */}
+                {confirmMethod === 'app' && <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-                    Comprobante de pago <span style={{ color: 'var(--danger)' }}>*</span>
+                    Comprobante de pago <span style={{ color: 'var(--muted)', fontWeight: 'normal' }}>(opcional)</span>
                   </p>
                   <label className="flex flex-col items-center gap-2 p-4 rounded-xl cursor-pointer border-2 border-dashed transition-colors hover:opacity-80"
                          style={{ borderColor: proofFile ? 'var(--accent)' : 'var(--pt-border)', background: proofFile ? 'rgba(16,185,129,0.06)' : 'var(--surface2)' }}>
@@ -527,19 +560,20 @@ export default function PerfilPage() {
                       </>
                     )}
                   </label>
-                </div>
+                </div>}
 
                 <button
-                  disabled={!proofFile || submitting}
+                  disabled={submitting}
                   onClick={async () => {
-                    if (!proofFile || !selectedPlanId) return
+                    if (!selectedPlanId) return
                     setSubmitting(true)
                     try {
                       const token = localStorage.getItem('token')
                       const fd = new FormData()
                       fd.append('planId', selectedPlanId)
                       fd.append('method', proofMethod)
-                      fd.append('proof', proofFile)
+                      fd.append('confirmMethod', confirmMethod)
+                      if (proofFile) fd.append('proof', proofFile)
                       const res = await fetch('/api/plan-upgrade-requests', {
                         method: 'POST',
                         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -556,9 +590,12 @@ export default function PerfilPage() {
                   }}
                   className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer"
                   style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-                  {submitting ? 'Enviando...' : 'Enviar solicitud'}
+                  {submitting ? 'Enviando...' : confirmMethod === 'app' ? 'Enviar solicitud con comprobante' : 'Registrar solicitud'}
                 </button>
 
+                <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+                  Si prefieres, puedes enviar el comprobante por correo o WhatsApp. Tu solicitud quedará registrada de igual forma.
+                </p>
                 <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
                   Confirmaremos la activación en menos de 24 horas.
                 </p>
