@@ -165,6 +165,19 @@ La aplicación tiene modo claro y modo oscuro. El usuario puede cambiar entre lo
 
 ---
 
+## Navegación
+
+La aplicación se adapta al dispositivo:
+- **En computadora:** barra de navegación superior con acceso a Inicio, Pensum, Preselección, Profesores, Mapa (y Admin para administradores).
+- **En móvil:** barra inferior fija con los mismos accesos directos y un encabezado superior con el logo. Hasta que el estudiante no configura su carrera (onboarding), solo se muestra el acceso a Inicio.
+
+---
+
+## Aplicación instalable (PWA)
+PensumTrack es una **aplicación web progresiva (PWA)**: se puede **instalar en el teléfono o la computadora** como si fuera una app nativa, con su propio ícono, y abrirse en pantalla completa sin la barra del navegador.
+
+---
+
 ## Panel de administración
 
 Solo accesible para usuarios administradores.
