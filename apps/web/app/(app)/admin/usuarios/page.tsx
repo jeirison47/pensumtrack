@@ -531,6 +531,12 @@ function PlansTab() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null)
 
+  // Tasa de cambio
+  const [savedRate, setSavedRate] = useState<{ rate: number; updatedAt: string } | null>(null)
+  const [liveRate, setLiveRate] = useState<number | null>(null)
+  const [fetchingRate, setFetchingRate] = useState(false)
+  const [savingRate, setSavingRate] = useState(false)
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : ''
   const authHdr = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
@@ -541,7 +547,38 @@ function PlansTab() {
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { fetchPlans() }, [fetchPlans])
+  useEffect(() => {
+    fetchPlans()
+    fetch('/api/admin/exchange-rate', { headers: authHdr })
+      .then((r) => r.json())
+      .then((j) => j.data && setSavedRate(j.data))
+      .catch(() => {})
+  }, [fetchPlans])
+
+  async function fetchLiveRate() {
+    setFetchingRate(true)
+    setLiveRate(null)
+    try {
+      const res = await fetch('/api/admin/exchange-rate', { method: 'PUT', headers: authHdr })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+      setLiveRate(j.data.rate)
+    } catch { toast.error('No se pudo obtener la tasa actual') }
+    finally { setFetchingRate(false) }
+  }
+
+  async function saveRate(rate: number) {
+    setSavingRate(true)
+    try {
+      const res = await fetch('/api/admin/exchange-rate', { method: 'POST', headers: authHdr, body: JSON.stringify({ rate }) })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+      setSavedRate({ rate, updatedAt: new Date().toISOString() })
+      setLiveRate(null)
+      toast.success('Tasa guardada')
+    } catch { toast.error('Error al guardar') }
+    finally { setSavingRate(false) }
+  }
 
   async function handleDelete(plan: Plan) {
     try {
@@ -556,6 +593,44 @@ function PlansTab() {
 
   return (
     <div className="space-y-4">
+
+      {/* Tasa de cambio USD → DOP */}
+      <div className="p-4 rounded-2xl space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Tasa de cambio USD → DOP</p>
+            {savedRate ? (
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Guardada: <span style={{ color: 'var(--accent)' }}>RD${savedRate.rate.toFixed(2)}</span>
+                {' · '}{new Date(savedRate.updatedAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </p>
+            ) : (
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>Sin tasa guardada — se usa valor aproximado</p>
+            )}
+          </div>
+          <button onClick={fetchLiveRate} disabled={fetchingRate}
+                  className="px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer disabled:opacity-50 flex-shrink-0"
+                  style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
+            {fetchingRate ? 'Consultando...' : '↻ Obtener tasa actual'}
+          </button>
+        </div>
+
+        {liveRate && (
+          <div className="flex items-center justify-between p-3 rounded-xl"
+               style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>Tasa actual: RD${liveRate.toFixed(2)}</p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>Obtenida de exchangerate-api.com</p>
+            </div>
+            <button onClick={() => saveRate(liveRate)} disabled={savingRate}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50"
+                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              {savingRate ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: 'var(--muted)' }}>{plans.length} plan(es) configurados</p>
         <button onClick={() => router.push('/admin/planes/nuevo')}
