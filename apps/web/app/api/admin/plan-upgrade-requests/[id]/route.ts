@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { del } from '@vercel/blob'
 import { getUserId, forbidden } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
 import { sendRequestStatusEmail } from '@/lib/email'
@@ -32,7 +33,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await prisma.$transaction(async (tx) => {
     await tx.planUpgradeRequest.update({
       where: { id },
-      data: { status, adminNotes: adminNotes ?? null },
+      // Al resolver (aprobar o rechazar) ya no se necesita el comprobante:
+      // se borra del Blob (abajo) y se limpia su referencia en la BD.
+      data: { status, adminNotes: adminNotes ?? null, proofUrl: null, proofName: null },
     })
 
     if (status === 'APPROVED') {
@@ -53,6 +56,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       })
     }
   })
+
+  // Liberar espacio: borrar el comprobante del Blob una vez resuelta la solicitud.
+  if (upgradeReq.proofUrl) {
+    try {
+      await del(upgradeReq.proofUrl)
+    } catch { /* el borrado no debe bloquear la resolución */ }
+  }
 
   try {
     await sendRequestStatusEmail(

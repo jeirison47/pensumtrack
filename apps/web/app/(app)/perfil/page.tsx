@@ -9,6 +9,7 @@ import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOf
 import toast from 'react-hot-toast'
 import { usePlan } from '@/hooks/usePlan'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { compressImage } from '@/lib/compressImage'
 import { PlanGateModal } from '@/components/ui/PlanGateModal'
 import { Modal } from '@/components/ui/Modal'
 import { FEATURE_LABELS } from '@/lib/features'
@@ -602,8 +603,23 @@ export default function PerfilPage() {
                   </p>
                   <label className="flex flex-col items-center gap-2 p-4 rounded-xl cursor-pointer border-2 border-dashed transition-colors hover:opacity-80"
                          style={{ borderColor: proofFile ? 'var(--accent)' : 'var(--pt-border)', background: proofFile ? 'rgba(16,185,129,0.06)' : 'var(--surface2)' }}>
-                    <input type="file" accept="image/*,.pdf" className="hidden"
-                           onChange={(e) => setProofFile(e.target.files?.[0] ?? null)} />
+                    <input type="file" accept="image/*" className="hidden"
+                           onChange={async (e) => {
+                             const f = e.target.files?.[0]
+                             if (!f) return
+                             if (!f.type.startsWith('image/')) {
+                               toast.error('Solo se permiten imágenes')
+                               e.target.value = ''
+                               return
+                             }
+                             const compressed = await compressImage(f)
+                             if (compressed.size > 5 * 1024 * 1024) {
+                               toast.error('La imagen supera 5 MB, intenta con otra')
+                               e.target.value = ''
+                               return
+                             }
+                             setProofFile(compressed)
+                           }} />
                     {proofFile ? (
                       <>
                         <Check size={20} style={{ color: 'var(--accent)' }} />
@@ -613,8 +629,8 @@ export default function PerfilPage() {
                     ) : (
                       <>
                         <CreditCard size={20} style={{ color: 'var(--muted)' }} />
-                        <p className="text-sm" style={{ color: 'var(--muted)' }}>Toca para subir imagen o PDF</p>
-                        <p className="text-xs" style={{ color: 'var(--muted)' }}>Máx. 5 MB</p>
+                        <p className="text-sm" style={{ color: 'var(--muted)' }}>Toca para subir una imagen</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>JPG o PNG · se optimiza automáticamente</p>
                       </>
                     )}
                   </label>

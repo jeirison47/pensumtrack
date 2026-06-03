@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
     let proofName: string | null = null
 
     if (file && file.size > 0) {
+      if (!file.type.startsWith('image/')) {
+        return NextResponse.json({ error: 'Solo se permiten imágenes' }, { status: 400 })
+      }
       if (file.size > 5 * 1024 * 1024) {
         return NextResponse.json({ error: 'El archivo no puede superar 5 MB' }, { status: 400 })
       }
@@ -58,10 +61,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[plan-upgrade-requests] POST error:', err)
     return NextResponse.json(
-      {
-        error: 'No se pudo registrar la solicitud. Inténtalo de nuevo o envía el comprobante por correo/WhatsApp.',
-        detail: err instanceof Error ? err.message : String(err),
-      },
+      { error: 'No se pudo registrar la solicitud. Inténtalo de nuevo o envía el comprobante por correo/WhatsApp.' },
       { status: 500 },
     )
   }
