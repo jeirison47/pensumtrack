@@ -58,7 +58,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[plan-upgrade-requests] POST error:', err)
     return NextResponse.json(
-      { error: 'No se pudo registrar la solicitud. Inténtalo de nuevo o envía el comprobante por correo/WhatsApp.' },
+      {
+        error: 'No se pudo registrar la solicitud. Inténtalo de nuevo o envía el comprobante por correo/WhatsApp.',
+        detail: err instanceof Error ? err.message : String(err),
+      },
       { status: 500 },
     )
   }
