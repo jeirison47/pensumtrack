@@ -238,10 +238,10 @@ export default function PerfilPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
             Mis carreras
           </h2>
-          <button onClick={() => { if (!hasFeature('multiple_careers')) { setCareerGateOpen(true); return } router.push('/onboarding?mode=add') }}
+          <button onClick={() => { if (profiles.length >= 1 && !hasFeature('multiple_careers')) { setCareerGateOpen(true); return } router.push('/onboarding?mode=add') }}
                   className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-xl"
                   style={{ background: 'var(--surface2)', color: 'var(--accent)' }}>
-            {hasFeature('multiple_careers') ? <Plus size={13} /> : <Lock size={13} />}
+            {profiles.length >= 1 && !hasFeature('multiple_careers') ? <Lock size={13} /> : <Plus size={13} />}
             Agregar
           </button>
         </div>
