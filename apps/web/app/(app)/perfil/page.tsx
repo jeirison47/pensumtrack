@@ -409,37 +409,80 @@ export default function PerfilPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
              style={{ background: 'rgba(0,0,0,0.7)' }}
              onClick={() => setShowUpgradeModal(false)}>
-          <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
+          <div className="w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90dvh] overflow-y-auto"
                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}
                onClick={(e) => e.stopPropagation()}>
+
             <div className="flex items-start justify-between">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center"
-                   style={{ background: 'rgba(16,185,129,0.1)' }}>
-                <CreditCard size={20} style={{ color: 'var(--accent)' }} />
+              <div>
+                <p className="font-bold text-base" style={{ color: 'var(--text)' }}>
+                  Solicitar plan {selectedPlanName}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                  Realiza una transferencia y envíanos el comprobante.
+                </p>
               </div>
-              <button onClick={() => setShowUpgradeModal(false)} className="p-1 cursor-pointer hover:opacity-70"
+              <button onClick={() => setShowUpgradeModal(false)} className="p-1 cursor-pointer hover:opacity-70 flex-shrink-0 ml-3"
                       style={{ color: 'var(--muted)' }}>
                 <X size={18} />
               </button>
             </div>
-            <div>
-              <p className="font-bold" style={{ color: 'var(--text)' }}>
-                Solicitar plan {selectedPlanName}
-              </p>
-              <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                Para activar este plan, realiza el pago mediante transferencia bancaria y envíanos el comprobante.
-              </p>
+
+            {/* Cuentas bancarias */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Cuentas disponibles</p>
+
+              {[
+                { bank: 'Banreservas', account: '9602214062', color: '#10b981' },
+                { bank: 'Banco Popular', account: '849096342', color: '#38bdf8' },
+                { bank: 'QIK (BHD)', account: '1000162805', color: '#a78bfa' },
+              ].map(({ bank, account, color }) => (
+                <div key={bank} className="flex items-center justify-between p-3 rounded-xl"
+                     style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color }}>{bank}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Ahorro · Jeirison Volquez</p>
+                  </div>
+                  <p className="text-sm font-mono font-bold" style={{ color: 'var(--text)' }}>{account}</p>
+                </div>
+              ))}
             </div>
-            <div className="p-3 rounded-xl space-y-1.5 text-sm"
+
+            {/* Instrucciones de envío */}
+            <div className="p-3 rounded-xl space-y-2"
                  style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
-              <p className="font-medium text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>
-                Datos de pago
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Cómo enviar el comprobante</p>
+              <p className="text-xs" style={{ color: 'var(--text)' }}>
+                Envía el comprobante al correo o WhatsApp con la siguiente información:
               </p>
-              <p style={{ color: 'var(--text)' }}>📧 Email: <span style={{ color: 'var(--accent)' }}>pagos@pensumtrack.app</span></p>
-              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
-                Incluye tu nombre de usuario y el plan que deseas al enviar el comprobante. Te confirmaremos la activación en menos de 24 horas.
-              </p>
+              <div className="text-xs space-y-0.5" style={{ color: 'var(--muted)' }}>
+                <p>📧 <span style={{ color: 'var(--accent)' }}>pensumtrackapp@gmail.com</span></p>
+                <p>💬 WhatsApp: <span style={{ color: 'var(--accent)' }}>809-980-9245</span></p>
+              </div>
             </div>
+
+            {/* Ejemplo de correo */}
+            <div className="p-3 rounded-xl space-y-1.5"
+                 style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>Ejemplo de cómo enviar el correo</p>
+              <div className="text-xs space-y-1" style={{ color: 'var(--muted)' }}>
+                <p><span style={{ color: 'var(--text)' }}>Asunto:</span> Solicitud de plan {selectedPlanName || '[nombre del plan]'} - PensumTrack</p>
+                <p><span style={{ color: 'var(--text)' }}>Cuerpo:</span></p>
+                <div className="ml-2 space-y-0.5">
+                  <p>Hola, realicé una transferencia para activar el plan <strong>{selectedPlanName || '[nombre del plan]'}</strong>.</p>
+                  <p>• Usuario en la app: <span style={{ color: 'var(--accent)' }}>{user?.username ?? user?.email ?? 'tu_usuario'}</span></p>
+                  <p>• Correo registrado: <span style={{ color: 'var(--accent)' }}>{user?.email ?? 'tu@correo.com'}</span></p>
+                  <p>• Banco usado: [banco donde transferiste]</p>
+                  <p>• Monto: $[monto]</p>
+                  <p>Adjunto el comprobante.</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+              Confirmaremos la activación en menos de 24 horas.
+            </p>
+
             <button onClick={() => setShowUpgradeModal(false)}
                     className="w-full py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
                     style={{ background: 'var(--accent)', color: '#0b0d12' }}>
