@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       }
       const ext = file.name.split('.').pop()
       const blob = await put(`comprobantes/${userId}-${Date.now()}.${ext}`, file, {
-        access: 'public',
+        access: 'private',
         contentType: file.type,
       })
       proofUrl = blob.url

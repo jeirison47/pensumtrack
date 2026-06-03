@@ -1913,14 +1913,27 @@ function PagosAdminTab() {
                 </div>
               </div>
 
-              {/* Comprobante */}
+              {/* Comprobante (blob privado: se abre autenticado con el token) */}
               {r.proofUrl && (
-                <a href={r.proofUrl} target="_blank" rel="noopener noreferrer"
-                   className="flex items-center gap-2 p-2 rounded-xl text-sm cursor-pointer hover:opacity-80"
-                   style={{ background: 'var(--surface2)', color: 'var(--accent)', border: '1px solid var(--pt-border)' }}>
+                <button
+                  onClick={async () => {
+                    try {
+                      const token = localStorage.getItem('token')
+                      const res = await fetch(`/api/admin/plan-upgrade-requests/${r.id}/comprobante`, {
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                      })
+                      if (!res.ok) throw new Error()
+                      const blob = await res.blob()
+                      window.open(URL.createObjectURL(blob), '_blank', 'noopener,noreferrer')
+                    } catch {
+                      toast.error('No se pudo abrir el comprobante')
+                    }
+                  }}
+                  className="flex items-center gap-2 p-2 rounded-xl text-sm cursor-pointer hover:opacity-80 w-full"
+                  style={{ background: 'var(--surface2)', color: 'var(--accent)', border: '1px solid var(--pt-border)' }}>
                   <Eye size={14} />
                   Ver comprobante {r.proofName ? `· ${r.proofName}` : ''}
-                </a>
+                </button>
               )}
 
               {r.adminNotes && (
