@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, X, Send, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { universityApi, type UniversitySummary } from '@/services/api'
+import { usePlan } from '@/hooks/usePlan'
+import { FeatureLockedPage } from '@/components/ui/FeatureLockedPage'
 
 const SCHEDULE_OPTIONS = [
   { value: 'MORNING', label: 'Mañana' },
@@ -14,6 +16,8 @@ const SCHEDULE_OPTIONS = [
 
 export default function SolicitarProfesorPage() {
   const router = useRouter()
+  const { hasFeature } = usePlan()
+  if (!hasFeature('professor_request')) return <FeatureLockedPage feature="Solicitar agregar profesor" />
   const [universities, setUniversities] = useState<UniversitySummary[]>([])
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [loadingSubjects, setLoadingSubjects] = useState(false)

@@ -73,7 +73,7 @@ export default function ProfesoresPage() {
           <p className="text-sm" style={{ color: 'var(--muted)' }}>Califica y consulta profesores</p>
         </div>
         <button
-          onClick={() => router.push('/profesores/solicitar')}
+          onClick={() => { if (!hasFeature('professor_request')) { setGateModal({ open: true, label: 'Solicitar agregar profesor' }); return } router.push('/profesores/solicitar') }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer"
           style={{ background: 'var(--accent)', color: '#0b0d12' }}
         >
@@ -127,7 +127,7 @@ export default function ProfesoresPage() {
           <GraduationCap size={40} className="mx-auto" style={{ color: 'var(--muted)' }} />
           <p className="text-sm" style={{ color: 'var(--muted)' }}>No se encontraron profesores</p>
           <button
-            onClick={() => router.push('/profesores/solicitar')}
+            onClick={() => { if (!hasFeature('professor_request')) { setGateModal({ open: true, label: 'Solicitar agregar profesor' }); return } router.push('/profesores/solicitar') }}
             className="text-sm font-semibold cursor-pointer"
             style={{ color: 'var(--accent)' }}
           >
