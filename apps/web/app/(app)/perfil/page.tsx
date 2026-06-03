@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked, CreditCard, X, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePlan } from '@/hooks/usePlan'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { PlanGateModal } from '@/components/ui/PlanGateModal'
 import { Modal } from '@/components/ui/Modal'
 import { FEATURE_LABELS } from '@/lib/features'
@@ -18,6 +19,7 @@ export default function PerfilPage() {
   const queryClient = useQueryClient()
   const { user, updateUser, logout } = useAuthStore()
   const { hasFeature } = usePlan()
+  const { toDOP, updatedAt } = useExchangeRate()
 
   // ─── Editar nombre ─────────────────────────────────────────────────────────
   const [editingName, setEditingName] = useState(false)
@@ -355,9 +357,14 @@ export default function PerfilPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       {plan.price != null ? (
-                        <p className="text-base font-bold" style={{ color: 'var(--text)' }}>
-                          ${plan.price}<span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/mes</span>
-                        </p>
+                        <div className="text-right">
+                          <p className="text-base font-bold" style={{ color: 'var(--text)' }}>
+                            ${plan.price}<span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/mes</span>
+                          </p>
+                          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                            RD${toDOP(plan.price)}/mes
+                          </p>
+                        </div>
                       ) : (
                         <p className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>Gratis</p>
                       )}
@@ -392,6 +399,11 @@ export default function PerfilPage() {
                 </div>
               )
             })}
+            {updatedAt && (
+              <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+                Tasa de cambio actualizada: {new Date(updatedAt).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -10,6 +10,7 @@ import {
 import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus, type UniversityAdmin, type CareerAdmin } from '@/services/api'
 import { PENSUM_TEMPLATE, PERIOD_LABELS } from '@/lib/parsePensum'
 import { FEATURE_KEYS, FEATURE_LABELS } from '@/lib/features'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import toast from 'react-hot-toast'
 
@@ -525,6 +526,7 @@ function UsersTab() {
 
 function PlansTab() {
   const router = useRouter()
+  const { toDOP } = useExchangeRate()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null)
@@ -585,7 +587,7 @@ function PlansTab() {
                     {plan.price != null && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                             style={{ background: 'rgba(56,189,248,0.12)', color: 'var(--accent2)' }}>
-                        ${plan.price}/mes
+                        ${plan.price} · RD${toDOP(plan.price)}/mes
                       </span>
                     )}
                     {plan.isDefault && (
