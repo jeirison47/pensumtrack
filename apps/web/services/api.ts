@@ -151,7 +151,7 @@ export const adminApi = {
       body: JSON.stringify({ ids, action, planId }),
     }),
   listPlans: () => request<{ data: Plan[] }>('/admin/plans'),
-  createPlan: (data: { name: string; description?: string; features: string[]; isDefault?: boolean }) =>
+  createPlan: (data: { name: string; description?: string; price?: number | null; features: string[]; isDefault?: boolean }) =>
     request<{ data: Plan }>('/admin/plans', {
       method: 'POST',
       body: JSON.stringify(data),
