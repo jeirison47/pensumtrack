@@ -6,7 +6,8 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useProgress } from '@/hooks/useProgress'
 import { progressApi } from '@/services/api'
 import { useProgressStore } from '@/store/useProgressStore'
-import { BookOpen, CheckCircle, Clock, Star, TrendingUp } from 'lucide-react'
+import { BookOpen, CheckCircle, Clock, Star, TrendingUp, GraduationCap, Plus } from 'lucide-react'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -17,15 +18,47 @@ export default function DashboardPage() {
   const [gradeInput, setGradeInput] = useState('')
 
   useEffect(() => {
-    if (user?.isAdmin) { router.replace('/admin'); return }
-    if (!isLoading && profile === null) router.replace('/onboarding')
-  }, [isLoading, profile, router, user])
+    if (user?.isAdmin) router.replace('/admin')
+  }, [router, user])
 
-  if (isLoading || profile === null) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+      </div>
+    )
+  }
+
+  if (profile === null) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 flex flex-col items-center text-center gap-5">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+             style={{ background: 'rgba(16,185,129,0.1)' }}>
+          <GraduationCap size={32} style={{ color: 'var(--accent)' }} />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold mb-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+            Hola, {user?.displayName?.split(' ')[0]}
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            Aún no tienes una carrera configurada. Selecciona tu universidad y carrera para comenzar a hacer seguimiento de tu progreso.
+          </p>
+        </div>
+        <div className="w-full flex flex-col gap-3">
+          <Link href="/onboarding"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-semibold text-sm cursor-pointer"
+                style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+            <GraduationCap size={16} />
+            Seleccionar universidad y carrera
+          </Link>
+          <Link href="/solicitar"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-medium cursor-pointer"
+                style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>
+            <Plus size={16} style={{ color: 'var(--accent)' }} />
+            Mi universidad no está — solicitar que la agreguen
+          </Link>
+        </div>
       </div>
     )
   }
