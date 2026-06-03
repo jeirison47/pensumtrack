@@ -6,6 +6,16 @@ PensumTrack es una aplicación web para estudiantes universitarios que permite l
 
 ---
 
+## Página de inicio (Landing)
+
+Página pública de presentación a la que llegan los visitantes que no han iniciado sesión (y a la que el usuario puede volver desde su perfil). Incluye:
+- **Características** de la aplicación (visualizar pensum, mapa de prerrequisitos, preselección, desbloqueo, seguimiento de progreso, profesores y reseñas, múltiples universidades, solicitar pensum).
+- **Planes y precios**, cargados dinámicamente desde la configuración real: cada plan muestra su nombre, descripción, precio en **USD y su equivalente en pesos dominicanos (RD$)** según la tasa configurada, y la lista de funciones incluidas. Siempre se mantiene sincronizada con los planes que defina el administrador.
+- **Contacto:** correo (pensumtrackapp@gmail.com) y WhatsApp (809-980-9245) para soporte y activación de planes.
+- Botones para registrarse o iniciar sesión.
+
+---
+
 ## Acceso y cuenta
 
 ### Registro
@@ -21,7 +31,13 @@ Pantalla con 6 casillas donde el estudiante ingresa el código recibido. Puede r
 Después de verificar el correo, el estudiante elige su universidad y su carrera, e indica en qué cuatrimestre/semestre se encuentra actualmente. Este paso configura su pensum de seguimiento.
 
 ### Perfil
-El estudiante puede cambiar su nombre y contraseña, y ver las carreras que tiene registradas. También puede agregar una segunda carrera si está cursando dos a la vez.
+El estudiante puede cambiar su nombre y contraseña, y ver las carreras que tiene registradas. La **primera carrera es gratuita**; agregar una segunda carrera (o más) requiere un plan de pago con la función de múltiples carreras.
+
+Desde el perfil también puede:
+- Ver su **plan actual** y, si es de pago, la **fecha de vencimiento** (con avisos cuando está por vencer o ya venció).
+- Consultar todos los planes disponibles, **solicitar un plan** o **renovar** el actual.
+- Ir a la **página principal** (landing) de la aplicación.
+- Cerrar sesión.
 
 ---
 
@@ -90,6 +106,46 @@ Si la carrera del estudiante no está en la plataforma, puede enviar una solicit
 
 ---
 
+## Planes, funciones premium y pagos
+
+### Cómo funcionan los planes
+La aplicación funciona con un modelo de **plan gratuito + planes de pago**. Cada plan tiene un nombre personalizable, un precio y una lista de **funciones (features)** que habilita. El acceso a las pantallas y acciones avanzadas se controla según las funciones del plan del usuario.
+
+Funciones que se pueden incluir en un plan:
+- **Marcar materias** (en curso, aprobadas, fallidas)
+- **Registrar notas** numéricas
+- **Estadísticas de progreso** (porcentaje de avance, promedios e índice académico)
+- **Preselección de materias** (períodos académicos)
+- **Vista de desbloqueo**
+- **Múltiples carreras** (más de una carrera a la vez; la primera siempre es gratis)
+- **Detalle de profesores**
+- **Calificar profesores**
+- **Solicitar agregar profesor**
+- **Solicitar agregar pensum**
+
+### Bloqueo de funciones (feature gating)
+Cuando el usuario intenta usar una función que su plan no incluye, ve un **candado** y un aviso ("Función no disponible en tu plan") con un botón para **ver los planes disponibles**. Las pantallas completas que requieren plan muestran un estado bloqueado en lugar del contenido.
+
+### Solicitar o renovar un plan
+Desde el perfil, al elegir un plan, el usuario:
+1. Selecciona el **método de pago**: transferencia bancaria o PayPal/tarjeta.
+2. Indica cómo enviará el comprobante: **subirlo en la app** o enviarlo por **correo/WhatsApp**.
+3. Si lo sube en la app, el comprobante se guarda de forma segura (almacenamiento de archivos en la nube).
+4. Se crea una **solicitud de plan** que el administrador revisa.
+
+Un usuario con plan de pago vigente puede **renovar** el mismo plan; si renueva antes de vencer, los días se **acumulan** desde su fecha de vencimiento.
+
+### Vencimiento mensual
+Los planes de pago duran **30 días**. El plan gratuito no vence. La aplicación gestiona el vencimiento automáticamente:
+- Cuando un plan vence, el usuario vuelve al plan gratuito y se pausan las funciones premium (su información se conserva).
+- Se envían **recordatorios por correo** cuando faltan 3 días y 1 día para vencer, y un aviso cuando ya venció.
+- Un **proceso automático diario** (cron) baja a los usuarios vencidos al plan gratuito y dispara esos correos.
+
+### Tasa de cambio USD/DOP
+Los precios se definen en dólares (USD) y se muestran también convertidos a pesos dominicanos (RD$). El administrador configura la tasa de cambio: puede **consultar la tasa actual** desde una fuente externa y **guardarla**, o **ingresarla manualmente**. La tasa guardada se usa en toda la app (landing, perfil y panel admin).
+
+---
+
 ## Notificaciones por correo
 
 La aplicación envía correos en los siguientes casos:
@@ -98,6 +154,9 @@ La aplicación envía correos en los siguientes casos:
 - Cuando el admin aprueba o rechaza una solicitud de carrera/pensum: **notificación de resultado**
 - Cuando el admin aprueba o rechaza una solicitud de profesor: **notificación de resultado**
 - Cuando el admin aprueba o rechaza una solicitud de actualización de profesor: **notificación de resultado**
+- Cuando el admin aprueba o rechaza una **solicitud de plan**: **notificación de resultado**
+- Cuando un plan de pago **está por vencer** (3 días y 1 día antes): **recordatorio de renovación**
+- Cuando un plan de pago **vence**: **aviso de vencimiento** (la cuenta vuelve al plan gratuito)
 
 ---
 
@@ -122,7 +181,16 @@ Lista de todos los usuarios registrados. El admin puede:
 - Realizar acciones en masa (activar, desactivar, eliminar, asignar plan a varios a la vez)
 
 ### Planes
-Creación de planes de acceso con diferentes características o funcionalidades (ej: plan gratuito, plan premium). Se pueden asignar a usuarios.
+Gestión de los planes de acceso. El admin puede:
+- **Crear y editar planes** (cada uno en su propia pantalla) con nombre, descripción, precio en USD, marcar cuál es el plan por defecto (gratuito) y seleccionar qué **funciones** habilita mediante casillas.
+- **Eliminar** planes.
+- Ver cada plan con su precio en USD y su equivalente en RD$ según la tasa configurada.
+
+### Tasa de cambio
+Configuración de la tasa USD→DOP usada para mostrar los precios en pesos. El admin puede **obtener la tasa actual** desde una fuente externa para previsualizarla, **ajustarla manualmente** y **guardarla**. Se muestra la fecha de la última actualización.
+
+### Pagos / Solicitudes de plan
+Lista de solicitudes de plan enviadas por los usuarios, con el método de pago, el comprobante (si lo subieron) y el estado. El admin puede **aprobar** (activa el plan y, si es de pago, fija su vencimiento a 30 días) o **rechazar** la solicitud. En ambos casos el usuario recibe un correo con el resultado.
 
 ### Solicitudes de pensum
 Lista de solicitudes enviadas por estudiantes para agregar carreras o pensums. El admin puede cambiar el estado: pendiente, en revisión, completada o rechazada. Al resolverla se notifica al estudiante.
