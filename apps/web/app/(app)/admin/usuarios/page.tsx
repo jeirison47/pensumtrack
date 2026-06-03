@@ -608,25 +608,45 @@ function PlansTab() {
               <p className="text-xs" style={{ color: 'var(--muted)' }}>Sin tasa guardada — se usa valor aproximado</p>
             )}
           </div>
-          <button onClick={fetchLiveRate} disabled={fetchingRate}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer disabled:opacity-50 flex-shrink-0"
-                  style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
-            {fetchingRate ? 'Consultando...' : '↻ Obtener tasa actual'}
-          </button>
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button onClick={() => setLiveRate(savedRate?.rate ?? 60)} disabled={fetchingRate}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer disabled:opacity-50"
+                    style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
+              Ingresar manual
+            </button>
+            <button onClick={fetchLiveRate} disabled={fetchingRate}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer disabled:opacity-50"
+                    style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
+              {fetchingRate ? 'Consultando...' : '↻ Obtener tasa actual'}
+            </button>
+          </div>
         </div>
 
-        {liveRate && (
-          <div className="flex items-center justify-between p-3 rounded-xl"
+        {liveRate !== null && (
+          <div className="p-3 rounded-xl space-y-2"
                style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)' }}>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>Tasa actual: RD${liveRate.toFixed(2)}</p>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>Obtenida de exchangerate-api.com</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Edita el valor si lo necesitas antes de guardar:</p>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center flex-1 gap-2 px-3 py-2 rounded-xl"
+                   style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                <span className="text-sm font-medium flex-shrink-0" style={{ color: 'var(--muted)' }}>RD$</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={liveRate}
+                  onChange={(e) => setLiveRate(Number(e.target.value))}
+                  className="flex-1 bg-transparent text-sm font-semibold outline-none"
+                  style={{ color: 'var(--accent)' }}
+                />
+                <span className="text-xs flex-shrink-0" style={{ color: 'var(--muted)' }}>por $1 USD</span>
+              </div>
+              <button onClick={() => saveRate(liveRate)} disabled={savingRate || !liveRate}
+                      className="px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50 flex-shrink-0"
+                      style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                {savingRate ? 'Guardando...' : 'Guardar'}
+              </button>
             </div>
-            <button onClick={() => saveRate(liveRate)} disabled={savingRate}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50"
-                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-              {savingRate ? 'Guardando...' : 'Guardar'}
-            </button>
           </div>
         )}
       </div>
