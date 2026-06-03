@@ -416,7 +416,7 @@ export default function PerfilPage() {
       </button>
 
       {/* Ir a la landing */}
-      <button onClick={() => router.push('/')}
+      <button onClick={() => router.push('/landing')}
               className="flex items-center gap-2 w-full py-3 px-4 rounded-2xl text-sm font-medium mb-3"
               style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)', color: 'var(--muted)' }}>
         <Home size={16} />
