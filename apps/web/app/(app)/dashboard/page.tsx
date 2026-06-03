@@ -120,21 +120,21 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Progreso general */}
-      <div className="p-4 rounded-2xl mb-4" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>Progreso de la carrera</span>
-          <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{pct}%</span>
-        </div>
-        <div className="w-full h-2 rounded-full" style={{ background: 'var(--surface2)' }}>
-          <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
-        </div>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{earnedCredits} de {totalCredits} créditos completados</p>
-      </div>
-
       {/* Stats grid */}
       {hasFeature('dashboard_stats') ? (
         <>
+          {/* Progreso general */}
+          <div className="p-4 rounded-2xl mb-4" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>Progreso de la carrera</span>
+              <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{pct}%</span>
+            </div>
+            <div className="w-full h-2 rounded-full" style={{ background: 'var(--surface2)' }}>
+              <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
+            </div>
+            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{earnedCredits} de {totalCredits} créditos completados</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             {stats.map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
