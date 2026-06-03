@@ -479,14 +479,33 @@ export default function PerfilPage() {
               </div>
             </div>
 
+            {/* Botón PayPal */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Pagar con tarjeta / PayPal</p>
+              <a
+                href={`https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=jeirison46%40gmail.com&item_name=PensumTrack+Plan+${encodeURIComponent(selectedPlanName)}&currency_code=USD&no_shipping=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold cursor-pointer"
+                style={{ background: '#0070ba', color: '#fff' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.243-8.143 6.243H10.28c-.176 0-.33.127-.358.303L8.763 21.26l-.373 2.37a.38.38 0 0 0 .377.435h3.593c.458 0 .85-.334.922-.785l.038-.196.734-4.653.047-.257a.935.935 0 0 1 .922-.786h.58c3.762 0 6.705-1.528 7.566-5.948.36-1.845.174-3.386-.727-4.523z"/>
+                </svg>
+                Pagar con PayPal
+              </a>
+              <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+                Después del pago, envíanos el screenshot de confirmación al correo o WhatsApp indicados arriba.
+              </p>
+            </div>
+
             <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
               Confirmaremos la activación en menos de 24 horas.
             </p>
 
             <button onClick={() => setShowUpgradeModal(false)}
                     className="w-full py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
-                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-              Entendido
+                    style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--pt-border)' }}>
+              Cerrar
             </button>
           </div>
         </div>
