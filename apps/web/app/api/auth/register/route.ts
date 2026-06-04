@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
+import { verifyTurnstile, getClientIp } from '@/lib/turnstile'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -22,6 +23,16 @@ function generateOtp(): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+
+    // Verificación anti-bot (Turnstile) antes de crear nada o enviar correo
+    const captchaOk = await verifyTurnstile(body?.turnstileToken, getClientIp(request))
+    if (!captchaOk) {
+      return NextResponse.json(
+        { error: 'Verificación de seguridad fallida. Recarga la página e inténtalo de nuevo.' },
+        { status: 400 },
+      )
+    }
+
     const result = schema.safeParse(body)
     if (!result.success) {
       return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { Turnstile } from '@/components/ui/Turnstile'
+
+const CAPTCHA_ENABLED = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -18,6 +21,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   const handleUsernameChange = (value: string) => {
     setUsername(value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
@@ -37,12 +42,17 @@ export default function RegisterPage() {
       return
     }
 
+    if (CAPTCHA_ENABLED && !captchaToken) {
+      setError('Completa la verificación de seguridad')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password, displayName }),
+        body: JSON.stringify({ email, username, password, displayName, turnstileToken: captchaToken }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Error al crear la cuenta')
@@ -56,6 +66,9 @@ export default function RegisterPage() {
       router.replace('/onboarding')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al crear la cuenta')
+      // El token de Turnstile es de un solo uso: reiniciar el widget tras un fallo
+      setCaptchaToken('')
+      setCaptchaKey((k) => k + 1)
     } finally {
       setLoading(false)
     }
@@ -178,6 +191,14 @@ export default function RegisterPage() {
             <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
               {error}
             </p>
+          )}
+
+          {CAPTCHA_ENABLED && (
+            <Turnstile
+              key={captchaKey}
+              onVerify={setCaptchaToken}
+              onExpire={() => setCaptchaToken('')}
+            />
           )}
 
           <button
