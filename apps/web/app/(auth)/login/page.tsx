@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useRedirectIfAuth } from '@/hooks/useRedirectIfAuth'
 
 export default function LoginPage() {
   const router = useRouter()
+  const checkingAuth = useRedirectIfAuth()
   const { setAuth } = useAuthStore()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -41,6 +43,15 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="w-8 h-8 border-2 rounded-full animate-spin"
+             style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+      </div>
+    )
   }
 
   return (

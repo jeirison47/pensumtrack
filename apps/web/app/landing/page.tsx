@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BookOpen, GitBranch, CheckSquare, Unlock, BarChart3, ArrowRight, GraduationCap,
@@ -159,6 +160,12 @@ function PlansSection() {
 }
 
 export default function LandingPage() {
+  const [loggedIn, setLoggedIn] = useState(false)
+
+  useEffect(() => {
+    setLoggedIn(typeof window !== 'undefined' && !!localStorage.getItem('token'))
+  }, [])
+
   return (
     <div style={{ backgroundColor: 'var(--bg)', color: 'var(--text)', minHeight: '100dvh' }}>
       {/* Nav */}
@@ -174,17 +181,27 @@ export default function LandingPage() {
           <a href="#contacto" className="transition hover:opacity-80">Contacto</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/login"
-            className="px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-80 hidden sm:block"
-            style={{ color: 'var(--muted)' }}>
-            Iniciar sesión
-          </Link>
-          <Link href="/register"
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
-            style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-            <span className="hidden sm:inline">Registrarse</span>
-            <span className="sm:hidden">Entrar</span>
-          </Link>
+          {loggedIn ? (
+            <Link href="/dashboard"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+              style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              Volver a la app
+            </Link>
+          ) : (
+            <>
+              <Link href="/login"
+                className="px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-80 hidden sm:block"
+                style={{ color: 'var(--muted)' }}>
+                Iniciar sesión
+              </Link>
+              <Link href="/register"
+                className="px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+                style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                <span className="hidden sm:inline">Registrarse</span>
+                <span className="sm:hidden">Entrar</span>
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
