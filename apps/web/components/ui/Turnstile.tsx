@@ -75,5 +75,5 @@ export function Turnstile({ onVerify, onExpire }: Props) {
   }, [siteKey])
 
   if (!siteKey) return null
-  return <div ref={containerRef} />
+  return <div ref={containerRef} style={{ display: 'flex', justifyContent: 'center' }} />
 }

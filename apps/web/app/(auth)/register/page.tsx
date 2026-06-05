@@ -75,9 +75,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center px-4"
+    <div className="min-h-dvh flex items-center justify-center px-4 py-8"
          style={{ backgroundColor: 'var(--bg)' }}>
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm md:max-w-xl">
         <div className="flex items-center gap-3 mb-2">
           <img src="/logo.png" alt="PensumTrack" className="w-10 h-10 object-contain" />
           <h1 className="text-3xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
@@ -86,7 +86,7 @@ export default function RegisterPage() {
         </div>
         <p className="text-sm mb-8" style={{ color: 'var(--muted)' }}>Empieza a gestionar tu carrera</p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm" style={{ color: 'var(--muted)' }}>Nombre</label>
             <input
@@ -119,7 +119,7 @@ export default function RegisterPage() {
             <p className="text-xs" style={{ color: 'var(--muted)' }}>Solo letras minúsculas, números y guiones bajos</p>
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-sm" style={{ color: 'var(--muted)' }}>Email</label>
             <input
               type="email"
@@ -188,23 +188,25 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
+            <p className="text-sm px-3 py-2 rounded-lg md:col-span-2" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
               {error}
             </p>
           )}
 
           {CAPTCHA_ENABLED && (
-            <Turnstile
-              key={captchaKey}
-              onVerify={setCaptchaToken}
-              onExpire={() => setCaptchaToken('')}
-            />
+            <div className="md:col-span-2">
+              <Turnstile
+                key={captchaKey}
+                onVerify={setCaptchaToken}
+                onExpire={() => setCaptchaToken('')}
+              />
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-60"
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-60 md:col-span-2"
             style={{ background: 'var(--accent)', color: '#0b0d12' }}
           >
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
