@@ -73,7 +73,12 @@ export async function GET(req: NextRequest) {
     where: { createdAt: { lt: dayAgo } },
   })
 
+  // Códigos de restablecimiento con más de 24 h
+  const { count: resetsCleaned } = await prisma.passwordReset.deleteMany({
+    where: { createdAt: { lt: dayAgo } },
+  })
+
   return NextResponse.json({
-    data: { downgraded, reminded, checkedSoon: soon.length, rateLimitsCleaned, pendingCleaned, otpCleaned },
+    data: { downgraded, reminded, checkedSoon: soon.length, rateLimitsCleaned, pendingCleaned, otpCleaned, resetsCleaned },
   })
 }

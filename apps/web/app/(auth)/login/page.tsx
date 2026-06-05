@@ -108,7 +108,13 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm mt-6" style={{ color: 'var(--muted)' }}>
+        <p className="text-center text-sm mt-4">
+          <Link href="/forgot-password" style={{ color: 'var(--muted)' }} className="transition-opacity hover:opacity-70">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+
+        <p className="text-center text-sm mt-3" style={{ color: 'var(--muted)' }}>
           ¿No tienes cuenta?{' '}
           <Link href="/register" style={{ color: 'var(--accent)' }}>Regístrate</Link>
         </p>

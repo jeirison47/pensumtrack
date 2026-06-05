@@ -47,6 +47,20 @@ model EmailVerification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Códigos de restablecimiento de contraseña (flujo "olvidé mi contraseña").
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0) // intentos de validación del código
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+}
+
 // Registro pendiente: se guarda aquí hasta que el usuario verifica su correo.
 // El User real solo se crea al validar el OTP, para no ensuciar la base con bots.
 model PendingRegistration {

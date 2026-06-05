@@ -21,6 +21,36 @@ async function send(to: string, toName: string, subject: string, htmlContent: st
   }
 }
 
+export function sendPasswordResetEmail(email: string, name: string, code: string) {
+  return send(
+    email,
+    name,
+    'Restablece tu contraseña — PensumTrack',
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b0d12;color:#e5e7eb;border-radius:16px">
+      <div style="margin-bottom:8px">
+        <span style="font-size:22px;font-weight:700;color:#10b981">PensumTrack</span>
+      </div>
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:32px">Sistema de gestión de pensums universitarios</p>
+
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f9fafb">Restablece tu contraseña</h2>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:28px">
+        Hola <strong style="color:#f9fafb">${name}</strong>, usa este código para crear una nueva contraseña.
+        Expira en <strong style="color:#f9fafb">15 minutos</strong>.
+      </p>
+
+      <div style="background:#1a1d26;border:1px solid #2d3140;border-radius:12px;padding:24px;text-align:center;margin-bottom:28px">
+        <span style="font-size:36px;font-weight:700;letter-spacing:10px;color:#10b981">${code}</span>
+      </div>
+
+      <p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #1f2335;padding-top:16px">
+        Si no solicitaste cambiar tu contraseña, ignora este correo: tu cuenta sigue segura.
+      </p>
+    </div>
+    `,
+  )
+}
+
 export function sendOtpEmail(email: string, name: string, code: string) {
   return send(
     email,
