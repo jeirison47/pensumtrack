@@ -3,15 +3,13 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import {
   BookOpen, GitBranch, CheckSquare, Unlock, BarChart3, ArrowRight, GraduationCap,
-  Users, Star, ClipboardList, Award, Check, Mail, MessageCircle, Sparkles,
+  Users, Star, ClipboardList, Award, Check, Mail, Sparkles,
 } from 'lucide-react'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { FEATURE_LABELS } from '@/lib/features'
 import type { FeatureKey } from '@/lib/features'
 
 const CONTACT_EMAIL = 'pensumtrackapp@gmail.com'
-const CONTACT_WHATSAPP = '8099809245'
-const CONTACT_WHATSAPP_DISPLAY = '809-980-9245'
 
 const features = [
   {
@@ -268,16 +266,11 @@ export default function LandingPage() {
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
             Escríbenos para soporte, activación de planes o para solicitar tu carrera.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-3 mt-4">
+          <div className="flex justify-center mt-4">
             <a href={`mailto:${CONTACT_EMAIL}`}
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition hover:opacity-90"
               style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--pt-border)' }}>
               <Mail size={16} style={{ color: 'var(--accent)' }} /> {CONTACT_EMAIL}
-            </a>
-            <a href={`https://wa.me/1${CONTACT_WHATSAPP}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition hover:opacity-90"
-              style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--pt-border)' }}>
-              <MessageCircle size={16} style={{ color: 'var(--accent)' }} /> {CONTACT_WHATSAPP_DISPLAY}
             </a>
           </div>
         </div>
@@ -309,10 +302,6 @@ export default function LandingPage() {
         </div>
         <p className="text-xs" style={{ color: 'var(--muted)' }}>
           <a href={`mailto:${CONTACT_EMAIL}`} className="hover:opacity-80">{CONTACT_EMAIL}</a>
-          {' · '}
-          <a href={`https://wa.me/1${CONTACT_WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
-            WhatsApp {CONTACT_WHATSAPP_DISPLAY}
-          </a>
         </p>
         <p className="text-xs" style={{ color: 'var(--muted)' }}>
           © {new Date().getFullYear()} PensumTrack · Hecho para estudiantes

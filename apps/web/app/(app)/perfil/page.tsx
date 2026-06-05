@@ -534,7 +534,7 @@ export default function PerfilPage() {
                   <div className="grid grid-cols-2 gap-2">
                     {([
                       ['app', '📎 Subirlo aquí en la app'],
-                      ['email', '📧 Por correo o WhatsApp'],
+                      ['email', '📧 Por correo'],
                     ] as const).map(([val, label]) => (
                       <button key={val} type="button" onClick={() => setConfirmMethod(val)}
                               className="py-2.5 px-3 rounded-xl text-xs font-medium cursor-pointer text-left"
@@ -552,7 +552,6 @@ export default function PerfilPage() {
                          style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
                       <p style={{ color: 'var(--text)' }}>Envía el comprobante a:</p>
                       <p>📧 <span style={{ color: 'var(--accent)' }}>pensumtrackapp@gmail.com</span></p>
-                      <p>💬 WhatsApp: <span style={{ color: 'var(--accent)' }}>809-980-9245</span></p>
                       <p className="pt-1" style={{ color: 'var(--muted)' }}>
                         Incluye tu usuario <strong style={{ color: 'var(--text)' }}>{user?.username ?? user?.email}</strong> y el plan <strong style={{ color: 'var(--text)' }}>{selectedPlanName}</strong> en el mensaje.
                       </p>
@@ -668,7 +667,7 @@ export default function PerfilPage() {
                 </button>
 
                 <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-                  Si prefieres, puedes enviar el comprobante por correo o WhatsApp. Tu solicitud quedará registrada de igual forma.
+                  Si prefieres, puedes enviar el comprobante por correo. Tu solicitud quedará registrada de igual forma.
                 </p>
                 <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
                   Confirmaremos la activación en menos de 24 horas.
