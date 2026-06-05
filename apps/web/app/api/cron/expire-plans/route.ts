@@ -60,5 +60,20 @@ export async function GET(req: NextRequest) {
     where: { resetAt: { lt: now } },
   })
 
-  return NextResponse.json({ data: { downgraded, reminded, checkedSoon: soon.length, rateLimitsCleaned } })
+  // ─── 4. Auto-limpieza de registros temporales abandonados ─────────────────
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+  // Registros pendientes (no verificados) con más de 24 h → se descartan
+  const { count: pendingCleaned } = await prisma.pendingRegistration.deleteMany({
+    where: { createdAt: { lt: dayAgo } },
+  })
+
+  // OTPs (cuentas legacy) con más de 24 h → ya no sirven ni cuentan para el tope
+  const { count: otpCleaned } = await prisma.emailVerification.deleteMany({
+    where: { createdAt: { lt: dayAgo } },
+  })
+
+  return NextResponse.json({
+    data: { downgraded, reminded, checkedSoon: soon.length, rateLimitsCleaned, pendingCleaned, otpCleaned },
+  })
 }
