@@ -1,7 +1,28 @@
+import { prisma } from '@/lib/db'
+
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 const SENDER = { name: 'PensumTrack App', email: 'pensumtrackapp@gmail.com' }
 
-async function send(to: string, toName: string, subject: string, htmlContent: string) {
+// ─── Fusible de correos: tope diario global (cuota Brevo = 300/día) ───────────
+const DAILY_CAP = 250        // al llegar, se deja de enviar
+const ALERT_THRESHOLD = 200  // se avisa al admin una vez al día
+const ALERT_EMAIL = process.env.ADMIN_ALERT_EMAIL ?? SENDER.email
+
+// Cuenta y consume un envío del cupo diario (contador en RateLimit por fecha).
+async function consumeEmailQuota(): Promise<number> {
+  const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
+  const key = `email-quota:${date}`
+  const tomorrow = new Date()
+  tomorrow.setUTCHours(24, 0, 0, 0) // medianoche siguiente (para limpieza por cron)
+  const row = await prisma.rateLimit.upsert({
+    where: { key },
+    create: { key, count: 1, resetAt: tomorrow },
+    update: { count: { increment: 1 } },
+  })
+  return row.count
+}
+
+async function postToBrevo(to: string, toName: string, subject: string, htmlContent: string) {
   const res = await fetch(BREVO_API_URL, {
     method: 'POST',
     headers: {
@@ -19,6 +40,35 @@ async function send(to: string, toName: string, subject: string, htmlContent: st
     const err = await res.text()
     console.error('[email] Brevo error:', err)
   }
+}
+
+async function send(to: string, toName: string, subject: string, htmlContent: string) {
+  let count: number
+  try {
+    count = await consumeEmailQuota()
+  } catch (err) {
+    // Si el contador falla, no bloqueamos el envío
+    console.error('[email] error en cuota:', err)
+    return postToBrevo(to, toName, subject, htmlContent)
+  }
+
+  // Aviso al admin justo al cruzar el umbral (una sola vez al día)
+  if (count === ALERT_THRESHOLD) {
+    void postToBrevo(
+      ALERT_EMAIL,
+      'Admin',
+      '⚠️ Volumen alto de correos — PensumTrack',
+      `<div style="font-family:sans-serif"><p>Se han enviado <strong>${count}</strong> correos hoy (tope ${DAILY_CAP}). Si no lo esperabas, revisa posible abuso.</p></div>`,
+    )
+  }
+
+  // Fusible: superado el tope diario, no se envía
+  if (count > DAILY_CAP) {
+    console.warn(`[email] cuota diaria (${DAILY_CAP}) superada — no se envía: "${subject}"`)
+    return
+  }
+
+  return postToBrevo(to, toName, subject, htmlContent)
 }
 
 export function sendPasswordResetEmail(email: string, name: string, code: string) {
