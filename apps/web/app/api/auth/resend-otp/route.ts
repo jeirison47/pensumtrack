@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
+import { getClientIp } from '@/lib/turnstile'
+import { rateLimit, tooManyRequests } from '@/lib/rateLimit'
 
 const schema = z.object({
   userId: z.string().min(1),
@@ -20,6 +22,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId } = result.data
+
+    // Rate limit: por IP (5/10min) y por usuario (3/10min) — protege envío de correos
+    const ip = getClientIp(request) ?? 'unknown'
+    const rlIp = await rateLimit(`resend-otp:ip:${ip}`, 5, 10 * 60 * 1000)
+    if (!rlIp.allowed) return tooManyRequests(rlIp.retryAfterSec)
+    const rlUser = await rateLimit(`resend-otp:user:${userId}`, 3, 10 * 60 * 1000)
+    if (!rlUser.allowed) return tooManyRequests(rlUser.retryAfterSec)
 
     const user = await prisma.user.findUnique({
       where: { id: userId },

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
 import { verifyTurnstile, getClientIp } from '@/lib/turnstile'
+import { rateLimit, tooManyRequests } from '@/lib/rateLimit'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -24,8 +25,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
+    // Rate limit por IP: máx. 5 registros por hora
+    const ip = getClientIp(request) ?? 'unknown'
+    const rl = await rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+    if (!rl.allowed) return tooManyRequests(rl.retryAfterSec)
+
     // Verificación anti-bot (Turnstile) antes de crear nada o enviar correo
-    const captchaOk = await verifyTurnstile(body?.turnstileToken, getClientIp(request))
+    const captchaOk = await verifyTurnstile(body?.turnstileToken, ip)
     if (!captchaOk) {
       return NextResponse.json(
         { error: 'Verificación de seguridad fallida. Recarga la página e inténtalo de nuevo.' },

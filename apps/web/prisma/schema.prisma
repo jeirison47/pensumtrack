@@ -221,6 +221,16 @@ model AppConfig {
   updatedAt DateTime @updatedAt
 }
 
+// Rate limiting por ventana fija. La clave es "<accion>:<identificador>"
+// (ej. "register:1.2.3.4"). Se limpia periódicamente desde el cron.
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
 // ─── Profesores ───────────────────────────────────────────────────────────────
 
 enum ScheduleType {

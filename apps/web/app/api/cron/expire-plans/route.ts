@@ -55,5 +55,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ data: { downgraded, reminded, checkedSoon: soon.length } })
+  // ─── 3. Limpiar ventanas de rate limit ya expiradas ───────────────────────
+  const { count: rateLimitsCleaned } = await prisma.rateLimit.deleteMany({
+    where: { resetAt: { lt: now } },
+  })
+
+  return NextResponse.json({ data: { downgraded, reminded, checkedSoon: soon.length, rateLimitsCleaned } })
 }

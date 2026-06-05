@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
 import { resolveEffectivePlan } from '@/lib/plan'
+import { getClientIp } from '@/lib/turnstile'
+import { rateLimit, tooManyRequests } from '@/lib/rateLimit'
 
 const schema = z.object({
   identifier: z.string().min(1, 'Email o usuario requerido'),
@@ -24,6 +26,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { identifier, password } = result.data
+
+    // Rate limit por IP: máx. 10 intentos por 5 min (anti fuerza bruta)
+    const ip = getClientIp(request) ?? 'unknown'
+    const rl = await rateLimit(`login:${ip}`, 10, 5 * 60 * 1000)
+    if (!rl.allowed) return tooManyRequests(rl.retryAfterSec)
 
     const user = await prisma.user.findFirst({
       where: identifier.includes('@') ? { email: identifier } : { username: identifier },
