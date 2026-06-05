@@ -49,6 +49,12 @@ function parseTableRows(block: string): string[][] {
   return rows
 }
 
+// ¿El token significa "todas las materias"? (TODAS, TODOS, "todas las materias"...)
+function isAllPrereqToken(token: string): boolean {
+  const up = token.trim().toUpperCase()
+  return up === 'TODAS' || up === 'TODOS' || up.startsWith('TODAS ') || up.startsWith('TODOS ')
+}
+
 function normalizePeriodType(raw: string): PeriodType {
   const map: Record<string, PeriodType> = {
     semester: 'semester', semestre: 'semester',
@@ -133,6 +139,16 @@ export function parsePensum(text: string): ParsedPensum {
   }
 
   if (subjects.length === 0) throw new Error('No se encontraron materias en el archivo')
+
+  // Expandir "TODAS"/"TODOS" → todas las demás materias del pensum
+  // (convención para materias finales como pasantía o trabajo de grado).
+  const allCodes = subjects.map((s) => s.code)
+  for (const s of subjects) {
+    if (s.prerequisites.some(isAllPrereqToken)) {
+      s.prerequisites = allCodes.filter((c) => c !== s.code)
+      warnings.push(`"${s.code}": el prerrequisito "TODAS" se expandió a las ${s.prerequisites.length} materias del pensum.`)
+    }
+  }
 
   // Warn about prerequisites that don't exist in the pensum
   for (const s of subjects) {
