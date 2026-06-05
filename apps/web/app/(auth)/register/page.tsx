@@ -58,7 +58,7 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(json.error ?? 'Error al crear la cuenta')
 
       if (json.data.requiresVerification) {
-        router.replace(`/verify-email?userId=${json.data.userId}&email=${encodeURIComponent(json.data.email)}`)
+        router.replace(`/verify-email?pendingId=${json.data.pendingId}&email=${encodeURIComponent(json.data.email)}`)
         return
       }
 

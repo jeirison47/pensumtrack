@@ -11,8 +11,11 @@ function VerifyEmailContent() {
   const params = useSearchParams()
   const { setAuth } = useAuthStore()
 
+  const pendingId = params.get('pendingId') ?? ''
   const userId = params.get('userId') ?? ''
   const email = params.get('email') ?? ''
+  // Identificador a enviar al backend: pendingId (registro nuevo) o userId (legacy)
+  const verifyBody = pendingId ? { pendingId } : { userId }
 
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
@@ -21,8 +24,8 @@ function VerifyEmailContent() {
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
-    if (!userId) router.replace('/login')
-  }, [userId, router])
+    if (!pendingId && !userId) router.replace('/login')
+  }, [pendingId, userId, router])
 
   // Al llegar aquí ya se envió un código (registro o login sin verificar):
   // espera inicial de 1 min antes de poder reenviar.
@@ -71,7 +74,7 @@ function VerifyEmailContent() {
       const res = await fetch('/api/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, code: fullCode }),
+        body: JSON.stringify({ ...verifyBody, code: fullCode }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Código inválido')
@@ -94,7 +97,7 @@ function VerifyEmailContent() {
       const res = await fetch('/api/auth/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify(verifyBody),
       })
       const json = await res.json()
       if (!res.ok) {
