@@ -22,7 +22,7 @@ interface Teaching {
   id: string
   university: { id: string; name: string; shortName: string; logoUrl: string | null }
   subjectName: string
-  schedule: string
+  schedule: string | null
   ratingsCount: number
   avg: Record<Dim, number> | null
   userRating: Record<Dim, number> | null
@@ -260,9 +260,11 @@ export default function ProfesorDetailPage({ params }: { params: Promise<{ id: s
                   <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted)' }}>
                     <Building2 size={11} /> {t.university.shortName}
                   </span>
-                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted)' }}>
-                    <Clock size={11} /> {SCHEDULE_LABELS[t.schedule]}
-                  </span>
+                  {t.schedule && (
+                    <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted)' }}>
+                      <Clock size={11} /> {SCHEDULE_LABELS[t.schedule]}
+                    </span>
+                  )}
                 </div>
               </div>
               <button

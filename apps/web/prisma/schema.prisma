@@ -296,7 +296,7 @@ model ProfessorTeaching {
   professorId  String
   universityId String
   subjectName  String
-  schedule     ScheduleType @default(MORNING)
+  schedule     ScheduleType?
   createdAt    DateTime     @default(now())
 
   professor  Professor  @relation(fields: [professorId], references: [id], onDelete: Cascade)
