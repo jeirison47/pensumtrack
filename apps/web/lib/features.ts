@@ -1,4 +1,7 @@
 export const FEATURE_KEYS = [
+  'view_pensum',
+  'prerequisite_map',
+  'professor_list',
   'subject_status_update',
   'subject_grades',
   'dashboard_stats',
@@ -14,6 +17,18 @@ export const FEATURE_KEYS = [
 export type FeatureKey = (typeof FEATURE_KEYS)[number]
 
 export const FEATURE_LABELS: Record<FeatureKey, { label: string; description: string }> = {
+  view_pensum: {
+    label: 'Visualizar pensum',
+    description: 'Ver todas las materias de la carrera organizadas por cuatrimestre',
+  },
+  prerequisite_map: {
+    label: 'Mapa de prerrequisitos',
+    description: 'Ver el mapa visual de dependencias entre materias',
+  },
+  professor_list: {
+    label: 'Listado de profesores',
+    description: 'Ver la lista de profesores con su calificación promedio',
+  },
   subject_status_update: {
     label: 'Marcar materias',
     description: 'Marcar materias como en curso, aprobadas o fallidas',
