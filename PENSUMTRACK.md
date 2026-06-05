@@ -21,6 +21,8 @@ Página pública de presentación a la que llegan los visitantes que no han inic
 ### Registro
 El estudiante crea su cuenta ingresando nombre, usuario, correo electrónico y contraseña. Al registrarse se le envía un código de 6 dígitos al correo para verificar su cuenta antes de poder entrar.
 
+El formulario está protegido con una **verificación anti-bot (CAPTCHA de Cloudflare Turnstile)**, normalmente invisible para el usuario. Antes de crear la cuenta o enviar el correo, el servidor valida esa verificación; así se evita que bots creen cuentas masivamente y agoten el envío de correos.
+
 ### Inicio de sesión
 Puede entrar con su correo o nombre de usuario y contraseña. Si aún no ha verificado su correo, se le redirige automáticamente a la pantalla de verificación.
 
@@ -130,8 +132,10 @@ Cuando el usuario intenta usar una función que su plan no incluye, ve un **cand
 Desde el perfil, al elegir un plan, el usuario:
 1. Selecciona el **método de pago**: transferencia bancaria o PayPal/tarjeta.
 2. Indica cómo enviará el comprobante: **subirlo en la app** o enviarlo por **correo/WhatsApp**.
-3. Si lo sube en la app, el comprobante se guarda de forma segura (almacenamiento de archivos en la nube).
+3. Si lo sube en la app, el comprobante (solo **imágenes**) se **optimiza automáticamente** en el dispositivo para reducir su peso y se guarda de forma segura y **privada** en la nube.
 4. Se crea una **solicitud de plan** que el administrador revisa.
+
+El comprobante solo es visible para el administrador (a través de un acceso autenticado) y se **elimina automáticamente** cuando la solicitud se aprueba o rechaza, para no acumular archivos.
 
 Un usuario con plan de pago vigente puede **renovar** el mismo plan; si renueva antes de vencer, los días se **acumulan** desde su fecha de vencimiento.
 
@@ -203,7 +207,7 @@ Gestión de los planes de acceso. El admin puede:
 Configuración de la tasa USD→DOP usada para mostrar los precios en pesos. El admin puede **obtener la tasa actual** desde una fuente externa para previsualizarla, **ajustarla manualmente** y **guardarla**. Se muestra la fecha de la última actualización.
 
 ### Pagos / Solicitudes de plan
-Lista de solicitudes de plan enviadas por los usuarios, con el método de pago, el comprobante (si lo subieron) y el estado. El admin puede **aprobar** (activa el plan y, si es de pago, fija su vencimiento a 30 días) o **rechazar** la solicitud. En ambos casos el usuario recibe un correo con el resultado.
+Lista de solicitudes de plan enviadas por los usuarios, con el método de pago, el comprobante (si lo subieron) y el estado. El admin puede ver el comprobante mediante un acceso autenticado, y **aprobar** (activa el plan y, si es de pago, fija su vencimiento a 30 días) o **rechazar** la solicitud. En ambos casos el usuario recibe un correo con el resultado y el comprobante se elimina del almacenamiento.
 
 ### Solicitudes de pensum
 Lista de solicitudes enviadas por estudiantes para agregar carreras o pensums. El admin puede cambiar el estado: pendiente, en revisión, completada o rechazada. Al resolverla se notifica al estudiante.
