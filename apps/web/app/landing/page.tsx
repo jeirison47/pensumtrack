@@ -91,13 +91,13 @@ function PlansSection() {
   if (plans.length === 0) return null
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
+    <div className="flex flex-wrap justify-center gap-5 max-w-5xl mx-auto">
       {plans.map((plan) => {
         const isFree = plan.isDefault || !plan.price
         const featured = !isFree
         return (
           <div key={plan.id}
-            className="rounded-2xl p-6 flex flex-col gap-4 relative"
+            className="rounded-2xl p-6 flex flex-col gap-4 relative w-full sm:w-80 flex-shrink-0"
             style={{
               background: 'var(--surface)',
               border: `1px solid ${featured ? 'var(--accent)' : 'var(--pt-border)'}`,
