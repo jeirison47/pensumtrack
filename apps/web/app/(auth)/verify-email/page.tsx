@@ -24,6 +24,12 @@ function VerifyEmailContent() {
     if (!userId) router.replace('/login')
   }, [userId, router])
 
+  // Al llegar aquí ya se envió un código (registro o login sin verificar):
+  // espera inicial de 1 min antes de poder reenviar.
+  useEffect(() => {
+    setResendCooldown(60)
+  }, [])
+
   useEffect(() => {
     if (resendCooldown <= 0) return
     const t = setTimeout(() => setResendCooldown((v) => v - 1), 1000)
@@ -91,14 +97,25 @@ function VerifyEmailContent() {
         body: JSON.stringify({ userId }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Error al reenviar')
+      if (!res.ok) {
+        // Si el servidor indica cuánto esperar, reflejarlo en el contador
+        if (typeof json.retryAfterSec === 'number') setResendCooldown(json.retryAfterSec)
+        throw new Error(json.error ?? 'Error al reenviar')
+      }
       toast.success('Código reenviado')
-      setResendCooldown(60)
+      setResendCooldown(json.data?.nextResendInSec ?? 60)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error al reenviar')
     } finally {
       setResending(false)
     }
+  }
+
+  const formatCooldown = (sec: number) => {
+    if (sec < 60) return `${sec}s`
+    const m = Math.floor(sec / 60)
+    const s = sec % 60
+    return `${m}:${String(s).padStart(2, '0')}`
   }
 
   const isComplete = code.every((d) => d !== '')
@@ -157,7 +174,7 @@ function VerifyEmailContent() {
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
             ¿No recibiste el código?{' '}
             {resendCooldown > 0 ? (
-              <span style={{ color: 'var(--muted)' }}>Reenviar en {resendCooldown}s</span>
+              <span style={{ color: 'var(--muted)' }}>Reenviar en {formatCooldown(resendCooldown)}</span>
             ) : (
               <button
                 onClick={handleResend}

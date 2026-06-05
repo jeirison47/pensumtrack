@@ -23,12 +23,10 @@ export async function POST(request: NextRequest) {
 
     const { userId } = result.data
 
-    // Rate limit: por IP (5/10min) y por usuario (3/10min) — protege envío de correos
+    // Rate limit por IP (5/10min) — protege envío de correos ante abuso distribuido
     const ip = getClientIp(request) ?? 'unknown'
     const rlIp = await rateLimit(`resend-otp:ip:${ip}`, 5, 10 * 60 * 1000)
     if (!rlIp.allowed) return tooManyRequests(rlIp.retryAfterSec)
-    const rlUser = await rateLimit(`resend-otp:user:${userId}`, 3, 10 * 60 * 1000)
-    if (!rlUser.allowed) return tooManyRequests(rlUser.retryAfterSec)
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -38,6 +36,37 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     if (user.isEmailVerified) {
       return NextResponse.json({ error: 'El correo ya está verificado' }, { status: 400 })
+    }
+
+    // ─── Cooldown progresivo + tope por cuenta (basado en OTPs ya enviados) ───
+    // Espera creciente entre reenvíos: 1m, 5m, 15m, 30m, 1h.
+    const COOLDOWNS = [60, 300, 900, 1800, 3600]
+    const MAX_24H = 4 // máx. correos de verificación por cuenta en 24 h (inicial + 3 reenvíos)
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const recent = await prisma.emailVerification.findMany({
+      where: { userId, createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    })
+    const sent = recent.length
+
+    if (sent >= MAX_24H) {
+      return NextResponse.json(
+        { error: 'Alcanzaste el límite de códigos por hoy. Espera 24 horas o contáctanos para ayudarte.' },
+        { status: 429 },
+      )
+    }
+    if (sent >= 1) {
+      const required = COOLDOWNS[Math.min(sent - 1, COOLDOWNS.length - 1)]
+      const elapsed = Math.floor((Date.now() - recent[0].createdAt.getTime()) / 1000)
+      if (elapsed < required) {
+        const retry = required - elapsed
+        const mins = Math.ceil(retry / 60)
+        return NextResponse.json(
+          { error: `Espera ${retry < 60 ? `${retry}s` : `${mins} min`} antes de pedir otro código.`, retryAfterSec: retry },
+          { status: 429, headers: { 'Retry-After': String(retry) } },
+        )
+      }
     }
 
     // Invalidar OTPs anteriores
@@ -55,7 +84,11 @@ export async function POST(request: NextRequest) {
 
     await sendOtpEmail(user.email, user.displayName, code)
 
-    return NextResponse.json({ data: { sent: true } })
+    // Cooldown que aplicará para el PRÓXIMO reenvío (para el contador del front)
+    const nextSent = sent + 1
+    const nextResendInSec = nextSent >= MAX_24H ? null : COOLDOWNS[Math.min(nextSent - 1, COOLDOWNS.length - 1)]
+
+    return NextResponse.json({ data: { sent: true, nextResendInSec } })
   } catch (err) {
     console.error('[resend-otp]', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
