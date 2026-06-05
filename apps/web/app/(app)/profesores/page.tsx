@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, Star, MessageSquare, GraduationCap, Building2 } from 'lucide-react'
+import { Search, Plus, Star, MessageSquare, GraduationCap, Building2, Lock } from 'lucide-react'
 import { universityApi, type UniversitySummary } from '@/services/api'
 import { usePlan } from '@/hooks/usePlan'
 import { PlanGateModal } from '@/components/ui/PlanGateModal'
@@ -190,6 +190,13 @@ export default function ProfesoresPage() {
                     </span>
                   </div>
                 </div>
+
+                {!hasFeature('professor_detail') && (
+                  <span className="flex items-center gap-1 text-xs flex-shrink-0 self-center px-2 py-1 rounded-lg"
+                        style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+                    <Lock size={11} /> Detalle
+                  </span>
+                )}
               </div>
             </button>
           ))}
