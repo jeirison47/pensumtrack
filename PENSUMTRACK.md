@@ -23,11 +23,20 @@ El estudiante crea su cuenta ingresando nombre, usuario, correo electrónico y c
 
 El formulario está protegido con una **verificación anti-bot (CAPTCHA de Cloudflare Turnstile)**, normalmente invisible para el usuario. Antes de crear la cuenta o enviar el correo, el servidor valida esa verificación; así se evita que bots creen cuentas masivamente y agoten el envío de correos.
 
+La cuenta **solo se crea cuando se verifica el correo**: hasta ese momento los datos quedan como un registro pendiente temporal. Así, los registros no confirmados (por ejemplo de bots) no llegan a ocupar la base de datos.
+
 ### Inicio de sesión
-Puede entrar con su correo o nombre de usuario y contraseña. Si aún no ha verificado su correo, se le redirige automáticamente a la pantalla de verificación.
+Puede entrar con su correo o nombre de usuario y contraseña. Si aún no ha verificado su correo, se le redirige automáticamente a la pantalla de verificación. También hay un enlace **"¿Olvidaste tu contraseña?"**.
 
 ### Verificación de correo
-Pantalla con 6 casillas donde el estudiante ingresa el código recibido. Puede reenviar el código si no le llegó (con espera de 60 segundos entre intentos).
+Pantalla con 6 casillas donde el estudiante ingresa el código recibido. Puede reenviar el código si no le llegó, con una **espera creciente** entre reenvíos (1 min, luego 5 min, luego 15 min) y un **máximo de 4 códigos por cuenta** en 24 horas, para evitar abuso del envío de correos.
+
+### Recuperar contraseña
+Desde el login, en "¿Olvidaste tu contraseña?", el estudiante ingresa su correo y recibe un **código de 6 dígitos**; con él crea una nueva contraseña. Por seguridad:
+- El código expira en 15 minutos y es de un solo uso.
+- Máximo **3 correos de recuperación por día** por cada cuenta.
+- Máximo **5 intentos** por código; al superarlos hay que pedir uno nuevo.
+- El sistema no revela si un correo está registrado o no.
 
 ### Onboarding (primera vez)
 Después de verificar el correo, el estudiante elige su universidad y su carrera, e indica en qué cuatrimestre/semestre se encuentra actualmente. Este paso configura su pensum de seguimiento.
@@ -154,6 +163,7 @@ Los precios se definen en dólares (USD) y se muestran también convertidos a pe
 
 La aplicación envía correos en los siguientes casos:
 - Al registrarse o iniciar sesión sin verificar: **código OTP de verificación**
+- Al usar "olvidé mi contraseña": **código de restablecimiento**
 - Al cambiar contraseña (el usuario mismo o el admin): **aviso de cambio de contraseña**
 - Cuando el admin aprueba o rechaza una solicitud de carrera/pensum: **notificación de resultado**
 - Cuando el admin aprueba o rechaza una solicitud de profesor: **notificación de resultado**
@@ -161,6 +171,19 @@ La aplicación envía correos en los siguientes casos:
 - Cuando el admin aprueba o rechaza una **solicitud de plan**: **notificación de resultado**
 - Cuando un plan de pago **está por vencer** (3 días y 1 día antes): **recordatorio de renovación**
 - Cuando un plan de pago **vence**: **aviso de vencimiento** (la cuenta vuelve al plan gratuito)
+
+---
+
+## Seguridad y prevención de abuso
+
+La aplicación incluye varias capas para evitar registros masivos de bots y el agotamiento del envío de correos:
+
+- **CAPTCHA (Cloudflare Turnstile)** en el registro, normalmente invisible, validado en el servidor.
+- **Límite de intentos por IP (rate limiting)** en registro, inicio de sesión, reenvío de código y recuperación de contraseña: al superar el límite se responde con un aviso de "demasiados intentos".
+- **Cuenta solo al verificar:** los registros no confirmados quedan como pendientes temporales y nunca ocupan la base como usuarios reales.
+- **Control de códigos por correo:** espera creciente entre reenvíos y tope diario de códigos por cuenta.
+- **Fusible de correos:** un tope diario global de envíos; al acercarse al límite se avisa al administrador y, si se supera, la app deja de enviar correos ese día (protege la cuota del servicio de email).
+- **Limpieza automática diaria:** un proceso programado elimina registros temporales vencidos (pendientes de verificación, códigos usados/expirados y ventanas de límite), manteniendo la base limpia.
 
 ---
 
