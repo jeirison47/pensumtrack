@@ -46,6 +46,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Ordenar por mejor calificación (mayor a menor); sin calificación al final
+    data.sort((a, b) => {
+      const av = a.overallAvg ?? -1
+      const bv = b.overallAvg ?? -1
+      if (bv !== av) return bv - av
+      return a.name.localeCompare(b.name)
+    })
+
     return NextResponse.json({ data })
   } catch (err) {
     console.error('[professors/list]', err)
