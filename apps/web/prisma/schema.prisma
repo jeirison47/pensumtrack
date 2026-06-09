@@ -297,6 +297,7 @@ model ProfessorTeaching {
   professorId  String
   universityId String
   subjectName  String
+  subjectCode  String?      // código de la materia del pensum (si calza con una real)
   schedule     ScheduleType?
   createdAt    DateTime     @default(now())
 

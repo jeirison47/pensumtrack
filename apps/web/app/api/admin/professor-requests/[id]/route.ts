@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getUserId, unauthorized, forbidden } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
 import { sendProfessorRequestStatusEmail } from '@/lib/email'
+import { buildSubjectCodeMap, lookupCode } from '@/lib/subjectLink'
 
 const schema = z.object({
   status: z.enum(['COMPLETED', 'REJECTED', 'IN_REVIEW']),
@@ -33,6 +34,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   // Si se aprueba, crear el profesor automáticamente
   if (result.data.status === 'COMPLETED' && req.universityId) {
+    const codeMap = await buildSubjectCodeMap(req.universityId)
     const professor = await prisma.professor.create({
       data: {
         name: req.name,
@@ -42,6 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           create: req.subjects.map((subjectName) => ({
             universityId: req.universityId!,
             subjectName,
+            subjectCode: lookupCode(codeMap, subjectName),
             schedule: req.schedule,
           })),
         },
