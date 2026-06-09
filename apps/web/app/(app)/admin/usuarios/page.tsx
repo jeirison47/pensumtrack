@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Search, Shield, ShieldOff, UserCheck, UserX, Users, BookOpen, GraduationCap,
   ChevronLeft, ChevronRight, Plus, Trash2, CreditCard, Tag, KeyRound,
-  Upload, Eye, EyeOff, CheckCircle, AlertTriangle, ToggleLeft, ToggleRight, Copy, Check, MailCheck,
+  Upload, Eye, EyeOff, CheckCircle, AlertTriangle, ToggleLeft, ToggleRight, Copy, Check, MailCheck, Sparkles,
 } from 'lucide-react'
 import { adminApi, pensumApi, pensumRequestsApi, type AdminStats, type Plan, type ParsedPensum, type CareerVersion, type PensumRequest, type PensumRequestStatus, type UniversityAdmin, type CareerAdmin } from '@/services/api'
 import { PENSUM_TEMPLATE, PERIOD_LABELS } from '@/lib/parsePensum'
@@ -232,6 +232,23 @@ function UsersTab() {
     }
   }
 
+  async function handleActivateTrial(user: AdminUser) {
+    if (!confirm(`¿Activar la prueba Premium de 7 días a ${user.email}?`)) return
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/trial`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      const plan = plans.find((p) => p.name === json.data.planName) ?? null
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, plan: { id: plan?.id ?? '', name: json.data.planName } } : u))
+      toast.success('Prueba de 7 días activada')
+    } catch (err: any) {
+      toast.error(err.message || 'Error al activar la prueba')
+    }
+  }
+
   return (
     <div className="space-y-5">
       {stats && (
@@ -426,6 +443,12 @@ function UsersTab() {
                     className="p-1.5 rounded-lg transition hover:opacity-70"
                     style={{ color: user.isActive ? 'var(--muted)' : 'var(--danger)' }}>
                     {user.isActive ? <UserX size={15} /> : <UserCheck size={15} />}
+                  </button>
+                  <button onClick={() => handleActivateTrial(user)}
+                    title="Activar prueba Premium 7 días"
+                    className="p-1.5 rounded-lg transition hover:opacity-70"
+                    style={{ color: 'var(--accent)' }}>
+                    <Sparkles size={15} />
                   </button>
                   <button onClick={() => setDeleteTarget(user)}
                     title="Eliminar usuario"
