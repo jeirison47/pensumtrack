@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
 import { resolveEffectivePlan } from '@/lib/plan'
+import { isTrialAvailable } from '@/lib/trial'
 import { getClientIp } from '@/lib/turnstile'
 import { rateLimit, tooManyRequests } from '@/lib/rateLimit'
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findFirst({
       where: identifier.includes('@') ? { email: identifier } : { username: identifier },
       include: {
-        plan: { select: { name: true, features: { select: { featureKey: true } } } },
+        plan: { select: { name: true, isDefault: true, features: { select: { featureKey: true } } } },
         profiles: { select: { id: true, careerId: true, currentSemester: true }, take: 1, orderBy: { createdAt: 'asc' } },
       },
     })
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
           planFeatures: effectivePlan.planFeatures,
           planExpiresAt: effectivePlan.planExpiresAt,
           planExpired: effectivePlan.planExpired,
+          trialAvailable: isTrialAvailable(user),
           settings: user.profiles[0] ?? null,
         },
         token,

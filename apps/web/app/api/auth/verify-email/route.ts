@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { resolveEffectivePlan } from '@/lib/plan'
+import { isTrialAvailable } from '@/lib/trial'
 
 const schema = z.object({
   pendingId: z.string().optional(),
@@ -11,7 +12,7 @@ const schema = z.object({
 })
 
 const userInclude = {
-  plan: { select: { name: true, features: { select: { featureKey: true } } } },
+  plan: { select: { name: true, isDefault: true, features: { select: { featureKey: true } } } },
   profiles: {
     select: { id: true, careerId: true, currentSemester: true },
     take: 1,
@@ -22,7 +23,8 @@ const userInclude = {
 function buildResponse(user: {
   id: string; email: string; username: string | null; displayName: string; isAdmin: boolean; createdAt: Date
   planExpiresAt: Date | null
-  plan: { name: string; features: { featureKey: string }[] } | null
+  trialUsedAt: Date | null
+  plan: { name: string; isDefault: boolean; features: { featureKey: string }[] } | null
   profiles: { id: string; careerId: string; currentSemester: number }[]
 }) {
   const plan = resolveEffectivePlan(user)
@@ -40,6 +42,7 @@ function buildResponse(user: {
         planFeatures: plan.planFeatures,
         planExpiresAt: plan.planExpiresAt,
         planExpired: plan.planExpired,
+        trialAvailable: isTrialAvailable(user),
         settings: user.profiles[0] ?? null,
       },
       token,

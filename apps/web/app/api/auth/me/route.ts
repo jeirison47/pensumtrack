@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserId, unauthorized } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
 import { resolveEffectivePlan } from '@/lib/plan'
+import { isTrialAvailable } from '@/lib/trial'
 
 export async function GET(request: NextRequest) {
   const userId = getUserId(request)
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      plan: { select: { name: true, features: { select: { featureKey: true } } } },
+      plan: { select: { name: true, isDefault: true, features: { select: { featureKey: true } } } },
       profiles: { select: { id: true, careerId: true, currentSemester: true }, take: 1, orderBy: { createdAt: 'asc' } },
     },
   })
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
       planFeatures: plan.planFeatures,
       planExpiresAt: plan.planExpiresAt,
       planExpired: plan.planExpired,
+      trialAvailable: isTrialAvailable(user),
       settings: user.profiles[0] ?? null,
     },
   })

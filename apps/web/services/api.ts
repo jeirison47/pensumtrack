@@ -252,6 +252,7 @@ export interface User {
   planFeatures?: string[]
   planExpiresAt?: string | null
   planExpired?: boolean
+  trialAvailable?: boolean
   createdAt: string
   settings?: {
     id: string

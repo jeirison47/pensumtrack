@@ -23,6 +23,7 @@ model User {
   updatedAt       DateTime @updatedAt
   planId          String?
   planExpiresAt   DateTime?
+  trialUsedAt     DateTime?
   username        String?  @unique
 
   profiles                StudentProfile[]

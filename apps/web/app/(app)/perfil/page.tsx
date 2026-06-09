@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi, userApi } from '@/services/api'
 import { useAuthStore } from '@/store/useAuthStore'
-import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked, CreditCard, X, Lock, Home } from 'lucide-react'
+import { GraduationCap, Building2, Check, Plus, LogOut, ChevronRight, Eye, EyeOff, BookMarked, CreditCard, X, Lock, Home, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePlan } from '@/hooks/usePlan'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
@@ -52,6 +52,32 @@ export default function PerfilPage() {
   const [confirmMethod, setConfirmMethod] = useState<'app' | 'email'>('app')
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [trialLoading, setTrialLoading] = useState(false)
+
+  const startTrial = async () => {
+    setTrialLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch('/api/trial/start', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo activar la prueba')
+      updateUser({
+        planName: json.data.planName,
+        planFeatures: json.data.planFeatures,
+        planExpiresAt: json.data.planExpiresAt,
+        planExpired: json.data.planExpired,
+        trialAvailable: false,
+      })
+      toast.success('¡Prueba Premium activada por 7 días!')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo activar la prueba')
+    } finally {
+      setTrialLoading(false)
+    }
+  }
 
   const { data: plansData } = useQuery({
     queryKey: ['plans-public'],
@@ -311,6 +337,25 @@ export default function PerfilPage() {
           </div>
         )}
       </div>
+
+      {/* Prueba gratis Premium */}
+      {user?.trialAvailable && (
+        <div className="mb-4 p-4 rounded-2xl"
+             style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid var(--accent)' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+            <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>Prueba Premium gratis</p>
+          </div>
+          <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+            Desbloquea todas las funciones por <strong style={{ color: 'var(--text)' }}>7 días</strong>, sin pago. Al terminar vuelves al plan gratis automáticamente.
+          </p>
+          <button onClick={startTrial} disabled={trialLoading}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50"
+                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+            {trialLoading ? 'Activando...' : 'Activar prueba de 7 días'}
+          </button>
+        </div>
+      )}
 
       {/* Mi plan */}
       <div className="mb-6">
