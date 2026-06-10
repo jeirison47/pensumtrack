@@ -145,7 +145,7 @@ export const adminApi = {
     }),
   deleteUser: (id: string) =>
     request<{ data: { id: string } }>(`/admin/users/${id}`, { method: 'DELETE' }),
-  bulkAction: (ids: string[], action: 'delete' | 'activate' | 'deactivate' | 'assign_plan', planId?: string | null) =>
+  bulkAction: (ids: string[], action: 'delete' | 'activate' | 'deactivate' | 'assign_plan' | 'trial', planId?: string | null) =>
     request<{ data: { affected: number } }>('/admin/users/bulk', {
       method: 'POST',
       body: JSON.stringify({ ids, action, planId }),

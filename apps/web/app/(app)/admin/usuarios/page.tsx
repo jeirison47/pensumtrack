@@ -146,7 +146,7 @@ function UsersTab() {
     else setSelected(new Set(users.map((u) => u.id)))
   }
 
-  async function handleBulkAction(action: 'activate' | 'deactivate' | 'assign_plan' | 'delete', planId?: string | null) {
+  async function handleBulkAction(action: 'activate' | 'deactivate' | 'assign_plan' | 'delete' | 'trial', planId?: string | null) {
     setBulkActing(true)
     try {
       const ids = Array.from(selected)
@@ -311,6 +311,12 @@ function UsersTab() {
             className="text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
             style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
             Desactivar
+          </button>
+          <button onClick={() => { if (confirm(`¿Activar la prueba Premium de ${trialDays} días a ${selected.size} usuario(s) seleccionados? Se les enviará un correo.`)) handleBulkAction('trial') }} disabled={bulkActing}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
+            style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
+            <Sparkles size={12} />
+            Activar prueba
           </button>
           {plans.length > 0 && (
             <div className="flex items-center gap-1">
