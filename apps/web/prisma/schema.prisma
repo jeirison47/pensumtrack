@@ -190,6 +190,12 @@ model StudentSubject {
   status      SubjectStatus @default(PENDING)
   grade       Float?
   period      String?
+  // Horario de clase (opcional, para materias en curso)
+  classDays     String[]   // días: MON, TUE, WED, THU, FRI, SAT, SUN
+  classStart    String?    // hora inicio "18:00"
+  classEnd      String?    // hora fin "20:00"
+  professorId   String?    // profesor registrado (si aplica)
+  professorName String?    // o texto libre si no está registrado
   updatedAt   DateTime      @updatedAt
 
   profile StudentProfile @relation(fields: [profileId], references: [id])

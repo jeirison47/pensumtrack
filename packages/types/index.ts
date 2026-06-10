@@ -36,6 +36,11 @@ export interface StudentSubject {
   status: SubjectStatus
   grade?: number       // 0–100
   period?: string      // Ej: "2025-1"
+  classDays?: string[]      // MON..SUN (horario de clase, materias en curso)
+  classStart?: string | null
+  classEnd?: string | null
+  professorId?: string | null
+  professorName?: string | null
 }
 
 export interface Preselection {
