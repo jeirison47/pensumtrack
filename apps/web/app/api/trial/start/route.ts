@@ -3,6 +3,7 @@ import { getUserId, unauthorized } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
 import { resolveEffectivePlan } from '@/lib/plan'
 import { getTrialPlan, isTrialAvailable, getTrialDays } from '@/lib/trial'
+import { sendTrialActivatedEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   const userId = getUserId(request)
@@ -34,6 +35,10 @@ export async function POST(request: NextRequest) {
     data: { planId: trialPlan.id, planExpiresAt: expiresAt, trialUsedAt: new Date() },
     include: { plan: { select: { name: true, isDefault: true, features: { select: { featureKey: true } } } } },
   })
+
+  try {
+    await sendTrialActivatedEmail(updated.email, updated.displayName, trialPlan.name, trialDays, expiresAt)
+  } catch { /* email no crítico */ }
 
   const plan = resolveEffectivePlan(updated)
   return NextResponse.json({

@@ -359,3 +359,40 @@ export function sendPlanExpiredEmail(email: string, name: string, planName: stri
     `,
   )
 }
+
+export function sendTrialActivatedEmail(email: string, name: string, planName: string, days: number, expiresAt: Date) {
+  const fecha = expiresAt.toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })
+  return send(
+    email,
+    name,
+    `¡Tu prueba ${planName} está activa! — PensumTrack`,
+    `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0b0d12;color:#e5e7eb;border-radius:16px">
+      <div style="margin-bottom:8px">
+        <span style="font-size:22px;font-weight:700;color:#10b981">PensumTrack</span>
+      </div>
+      <p style="color:#9ca3af;font-size:13px;margin-bottom:32px">Sistema de gestión de pensums universitarios</p>
+
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(16,185,129,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:22px">✨</div>
+
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#f9fafb">¡Tu prueba ${planName} está activa!</h2>
+      <p style="font-size:14px;color:#9ca3af;margin-bottom:20px">
+        Hola <strong style="color:#f9fafb">${name}</strong>, activaste tu prueba gratis por
+        <strong style="color:#f9fafb">${days} días</strong>. Ya tienes desbloqueadas todas las funciones premium.
+      </p>
+
+      <div style="background:#1a1d26;border:1px solid #2d3140;border-radius:12px;padding:16px;margin-bottom:28px">
+        <p style="font-size:13px;color:#9ca3af;margin:0">
+          Tu prueba vence el <strong style="color:#f9fafb">${fecha}</strong>. Al terminar, tu cuenta vuelve
+          al plan gratuito automáticamente (tu información se conserva). Si quieres seguir con Premium,
+          puedes pagar desde tu perfil antes de esa fecha.
+        </p>
+      </div>
+
+      <p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #1f2335;padding-top:16px">
+        Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.
+      </p>
+    </div>
+    `,
+  )
+}
