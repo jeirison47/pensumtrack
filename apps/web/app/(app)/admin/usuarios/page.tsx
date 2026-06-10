@@ -1632,6 +1632,7 @@ function ProfesoresAdminTab() {
   const [createName, setCreateName] = useState('')
   const [createBio, setCreateBio] = useState('')
   const [createLoading, setCreateLoading] = useState(false)
+  const [relinking, setRelinking] = useState(false)
   const [teachingProfId, setTeachingProfId] = useState<string | null>(null)
   const [teachingUniversityId, setTeachingUniversityId] = useState('')
   const [teachingSubject, setTeachingSubject] = useState('')
@@ -1694,6 +1695,17 @@ function ProfesoresAdminTab() {
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error') } finally { setTeachingLoading(false) }
   }
 
+  async function doRelink() {
+    setRelinking(true)
+    try {
+      const res = await fetch('/api/admin/professors/relink', { method: 'POST', headers: authHdr() })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      toast.success(`Vínculos actualizados: ${json.data.linked} materia(s) ligada(s)`)
+      loadAll()
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error') } finally { setRelinking(false) }
+  }
+
   async function doProfReq(id: string, status: 'COMPLETED' | 'REJECTED') {
     const res = await fetch(`/api/admin/professor-requests/${id}`, { method: 'PATCH', headers: authHdr(), body: JSON.stringify({ status }) })
     const json = await res.json(); if (!res.ok) return toast.error(json.error)
@@ -1719,7 +1731,10 @@ function ProfesoresAdminTab() {
 
       {subTab === 'profesores' && (
         <div className="space-y-3">
-          <button onClick={() => setShowCreate(!showCreate)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}><Plus size={15} /> Agregar profesor</button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setShowCreate(!showCreate)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}><Plus size={15} /> Agregar profesor</button>
+            <button onClick={doRelink} disabled={relinking} title="Liga las materias de profesores que estén en texto con las materias reales de los pensums" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50" style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--pt-border)' }}><Sparkles size={15} /> {relinking ? 'Actualizando...' : 'Actualizar vínculos de materias'}</button>
+          </div>
           {showCreate && (
             <form onSubmit={doCreateProf} className="p-4 rounded-2xl space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
               <input value={createName} onChange={(e) => setCreateName(e.target.value)} required placeholder="Nombre del profesor" className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
