@@ -6,7 +6,7 @@ import { progressApi } from '@/services/api'
 import { useProgressStore } from '@/store/useProgressStore'
 import { SubjectModal } from '@/components/layout/SubjectModal'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
-import type { SubjectStatusDB } from '@/services/api'
+import type { SubjectStatusDB, ClassSchedule } from '@/services/api'
 import { Search } from 'lucide-react'
 
 type Filter = 'all' | 'passed' | 'in-progress' | 'available' | 'locked' | 'preselected'
@@ -75,10 +75,22 @@ export default function PensumPage() {
     setSelectedStatus(getSubjectStatus(s.code))
   }
 
-  const handleChangeStatus = async (code: string, next: SubjectStatusDB, grade?: number) => {
+  const handleChangeStatus = async (code: string, next: SubjectStatusDB, grade?: number, schedule?: ClassSchedule) => {
     updateSubjectLocally(code, next, grade)
-    await progressApi.updateSubject(code, next, grade)
+    await progressApi.updateSubject(code, next, grade, undefined, schedule)
     invalidateProgress()
+  }
+
+  const scheduleOf = (code: string): ClassSchedule | null => {
+    const ss = profile?.subjects.find((s) => s.subjectCode === code)
+    if (!ss) return null
+    return {
+      classDays: ss.classDays ?? [],
+      classStart: ss.classStart ?? null,
+      classEnd: ss.classEnd ?? null,
+      professorId: ss.professorId ?? null,
+      professorName: ss.professorName ?? null,
+    }
   }
 
   if (isLoading) return (
@@ -163,6 +175,8 @@ export default function PensumPage() {
         preselectedCodes={preselectedCodes}
         onClose={() => setSelected(null)}
         onChangeStatus={handleChangeStatus}
+        scheduleOf={scheduleOf}
+        universityId={profile?.career.university.id}
       />
     </>
   )

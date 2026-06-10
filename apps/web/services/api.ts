@@ -72,10 +72,10 @@ export const progressApi = {
       method: 'PUT',
     }),
 
-  updateSubject: (subjectCode: string, status: SubjectStatusDB, grade?: number, period?: string) =>
+  updateSubject: (subjectCode: string, status: SubjectStatusDB, grade?: number, period?: string, schedule?: ClassSchedule) =>
     request<{ data: StudentSubjectDB }>('/progress/subject', {
       method: 'PUT',
-      body: JSON.stringify({ subjectCode, status, grade, period }),
+      body: JSON.stringify({ subjectCode, status, grade, period, ...schedule }),
     }),
 
   createPeriod: (label: string, startDate: string, endDate: string) =>
@@ -338,12 +338,25 @@ export interface CareerWithSubjects extends CareerSummary {
 
 export type SubjectStatusDB = 'PENDING' | 'IN_PROGRESS' | 'PASSED' | 'FAILED'
 
+export interface ClassSchedule {
+  classDays: string[]
+  classStart: string | null
+  classEnd: string | null
+  professorId: string | null
+  professorName: string | null
+}
+
 export interface StudentSubjectDB {
   id: string
   subjectCode: string
   status: SubjectStatusDB
   grade: number | null
   period: string | null
+  classDays?: string[]
+  classStart?: string | null
+  classEnd?: string | null
+  professorId?: string | null
+  professorName?: string | null
 }
 
 export type PreselectionStatus = 'OPEN' | 'CONFIRMED' | 'CLOSED'

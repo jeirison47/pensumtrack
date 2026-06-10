@@ -81,6 +81,18 @@ export default function DashboardPage() {
     profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'IN_PROGRESS')
   )
 
+  const DAY_LABELS: Record<string, string> = { MON: 'Lun', TUE: 'Mar', WED: 'Mié', THU: 'Jue', FRI: 'Vie', SAT: 'Sáb', SUN: 'Dom' }
+  const scheduleLine = (code: string): string | null => {
+    const ss = profile.subjects.find((x) => x.subjectCode === code)
+    if (!ss) return null
+    const parts: string[] = []
+    if (ss.classDays && ss.classDays.length > 0) {
+      parts.push(ss.classDays.map((d) => DAY_LABELS[d] ?? d).join(', ') + (ss.classStart ? ` ${ss.classStart}${ss.classEnd ? `–${ss.classEnd}` : ''}` : ''))
+    }
+    if (ss.professorName) parts.push(`Prof. ${ss.professorName}`)
+    return parts.length ? parts.join(' · ') : null
+  }
+
   const handleMarkPassed = async (code: string, grade?: number) => {
     updateSubjectLocally(code, 'PASSED', grade)
     await progressApi.updateSubject(code, 'PASSED', grade)
@@ -199,6 +211,11 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{s.name}</p>
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>{s.code} · {s.credits} créditos</p>
+                    {scheduleLine(s.code) && (
+                      <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+                        <Clock size={11} /> {scheduleLine(s.code)}
+                      </p>
+                    )}
                   </div>
                   {approvingCode !== s.code && (
                     <button onClick={() => { if (!hasFeature('subject_status_update')) { setGateModal({ open: true, label: 'Marcar materias' }); return } setApprovingCode(s.code); setGradeInput('') }}
