@@ -12,8 +12,11 @@ import { FeatureLockedPage } from '@/components/ui/FeatureLockedPage'
 import { usePlan } from '@/hooks/usePlan'
 import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import {
-  AlertTriangle, CheckCircle, Plus, Trash2, ChevronDown, ChevronUp,
+  AlertTriangle, CheckCircle, Plus, Trash2, ChevronDown, ChevronUp, Clock, CalendarDays,
 } from 'lucide-react'
+
+const DAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const DAY_FULL: Record<string, string> = { MON: 'Lunes', TUE: 'Martes', WED: 'Miércoles', THU: 'Jueves', FRI: 'Viernes', SAT: 'Sábado', SUN: 'Domingo' }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -84,6 +87,9 @@ export default function PreseleccionPage() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
 
+  // Vista: horario de clases o preselección
+  const [view, setView] = useState<'horario' | 'preseleccion'>('horario')
+
   // ─── Datos derivados ───────────────────────────────────────────────────────
 
   const allSubjects = hookSubjects
@@ -105,6 +111,23 @@ export default function PreseleccionPage() {
   const totalCredits = allSubjects
     .filter((s) => currentSubjectCodes.includes(s.code))
     .reduce((sum, s) => sum + s.credits, 0)
+
+  // Materias en curso con su horario (para la vista de horario de clases)
+  const inProgressWithSched = useMemo(() => {
+    return allSubjects.flatMap((s) => {
+      const ss = profile?.subjects.find((x) => x.subjectCode === s.code && x.status === 'IN_PROGRESS')
+      return ss ? [{ subject: s, ss }] : []
+    })
+  }, [allSubjects, profile?.subjects])
+
+  const scheduleByDay = DAY_ORDER.map((day) => ({
+    day,
+    items: inProgressWithSched
+      .filter((x) => x.ss.classDays?.includes(day))
+      .sort((a, b) => (a.ss.classStart ?? '').localeCompare(b.ss.classStart ?? '')),
+  })).filter((d) => d.items.length > 0)
+
+  const noScheduleSubjects = inProgressWithSched.filter((x) => !x.ss.classDays || x.ss.classDays.length === 0)
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -268,15 +291,80 @@ export default function PreseleccionPage() {
       <div className="max-w-4xl mx-auto px-4 py-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-              Preselección
-            </h1>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-              Gestiona tus períodos académicos.
-            </p>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+            Preselección
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+            Tu horario de clases y la gestión de períodos.
+          </p>
+        </div>
+
+        {/* Tabs de vista */}
+        <div className="flex gap-2 mb-5">
+          {([['horario', 'Horario de clases'], ['preseleccion', 'Preselección']] as const).map(([k, l]) => {
+            const on = view === k
+            return (
+              <button key={k} onClick={() => setView(k)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer"
+                style={{ background: on ? 'var(--surface)' : 'transparent', border: `1px solid ${on ? 'var(--accent)' : 'var(--pt-border)'}`, color: on ? 'var(--text)' : 'var(--muted)' }}>
+                {k === 'horario' ? <CalendarDays size={15} /> : <CheckCircle size={15} />} {l}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ── Vista: Horario de clases ── */}
+        {view === 'horario' && (
+          inProgressWithSched.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3" style={{ color: 'var(--muted)' }}>
+              <CalendarDays size={36} />
+              <p className="text-sm text-center">No tienes materias en curso.<br />Marca materias como &quot;en curso&quot; desde el pensum para ver tu horario aquí.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4 mb-4">
+              {scheduleByDay.map(({ day, items }) => (
+                <div key={day}>
+                  <h2 className="text-xs font-semibold mb-2 tracking-wider" style={{ color: 'var(--muted)' }}>{DAY_FULL[day].toUpperCase()}</h2>
+                  <div className="flex flex-col gap-2">
+                    {items.map(({ subject, ss }) => (
+                      <div key={subject.code} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                        <div className="text-center flex-shrink-0 w-14">
+                          <p className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{ss.classStart ?? '—'}</p>
+                          {ss.classEnd && <p className="text-xs" style={{ color: 'var(--muted)' }}>{ss.classEnd}</p>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{subject.name}</p>
+                          <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>{subject.code}{ss.professorName ? ` · Prof. ${ss.professorName}` : ''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {noScheduleSubjects.length > 0 && (
+                <div>
+                  <h2 className="text-xs font-semibold mb-2 tracking-wider" style={{ color: 'var(--muted)' }}>SIN HORARIO ASIGNADO</h2>
+                  <div className="flex flex-col gap-2">
+                    {noScheduleSubjects.map(({ subject }) => (
+                      <div key={subject.code} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                        <Clock size={15} style={{ color: 'var(--muted)' }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{subject.name}</p>
+                          <p className="text-xs" style={{ color: 'var(--muted)' }}>{subject.code} · agrégale día y hora desde el pensum</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        )}
+
+        {/* ── Vista: Preselección ── */}
+        {view === 'preseleccion' && (<>
+        <div className="flex justify-end mb-4">
           <button
             onClick={() => { setShowCreate(true); setCreateError('') }}
             disabled={hasActive}
@@ -489,10 +577,11 @@ export default function PreseleccionPage() {
             )}
           </>
         )}
+        </>)}
       </div>
 
       {/* Mobile: barra sticky resumen (solo OPEN) */}
-      {current?.status === 'OPEN' && (
+      {view === 'preseleccion' && current?.status === 'OPEN' && (
         <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden px-4 pb-2">
           <button onClick={() => setShowSummary(!showSummary)}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-2xl"
