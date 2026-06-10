@@ -767,6 +767,7 @@ function PlansTab() {
 // ─── Pensums Tab ──────────────────────────────────────────────────────────────
 
 function PensumsTab() {
+  const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [careers, setCareers] = useState<CareerVersion[]>([])
   const [loading, setLoading] = useState(true)
@@ -1052,6 +1053,12 @@ function PensumsTab() {
                     {career.university.name} · {periodLabel(career.periodType)} · {career._count.subjects} materias · {career._count.profiles} estudiantes
                   </p>
                 </div>
+                <button onClick={() => router.push(`/admin/pensums/${career.id}`)}
+                  title="Ver y gestionar materias"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-70 shrink-0"
+                  style={{ background: 'var(--surface2)', color: 'var(--text)' }}>
+                  Materias
+                </button>
                 <button onClick={() => handleToggleActive(career)}
                   title={career.isActive ? 'Desactivar' : 'Activar'}
                   className="p-1.5 rounded-lg transition hover:opacity-70 shrink-0"
