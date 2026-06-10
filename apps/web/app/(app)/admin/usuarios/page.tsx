@@ -76,6 +76,7 @@ function UsersTab() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
+  const [trialDays, setTrialDays] = useState(30)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
@@ -104,6 +105,8 @@ function UsersTab() {
   useEffect(() => {
     adminApi.stats().then((r) => setStats(r.data)).catch(() => {})
     adminApi.listPlans().then((r) => setPlans(r.data)).catch(() => {})
+    fetch('/api/admin/trial-config', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      .then((r) => r.json()).then((j) => j.data?.days && setTrialDays(j.data.days)).catch(() => {})
   }, [])
 
   const fetchUsers = useCallback(async (query: string, pg: number) => {
@@ -233,7 +236,7 @@ function UsersTab() {
   }
 
   async function handleActivateTrial(user: AdminUser) {
-    if (!confirm(`¿Activar la prueba Premium de 7 días a ${user.email}?`)) return
+    if (!confirm(`¿Activar la prueba Premium de ${trialDays} días a ${user.email}?`)) return
     try {
       const res = await fetch(`/api/admin/users/${user.id}/trial`, {
         method: 'POST',
@@ -445,7 +448,7 @@ function UsersTab() {
                     {user.isActive ? <UserX size={15} /> : <UserCheck size={15} />}
                   </button>
                   <button onClick={() => handleActivateTrial(user)}
-                    title="Activar prueba Premium 7 días"
+                    title={`Activar prueba Premium ${trialDays} días`}
                     className="p-1.5 rounded-lg transition hover:opacity-70"
                     style={{ color: 'var(--accent)' }}>
                     <Sparkles size={15} />
