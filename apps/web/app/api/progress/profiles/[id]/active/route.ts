@@ -17,6 +17,12 @@ export async function PUT(
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
     }
 
+    // Activar la carrera elegida y desactivar las demás del usuario
+    await prisma.$transaction([
+      prisma.studentProfile.updateMany({ where: { userId }, data: { isActive: false } }),
+      prisma.studentProfile.update({ where: { id }, data: { isActive: true } }),
+    ])
+
     return NextResponse.json({ data: { id, isActive: true } })
   } catch (err) {
     console.error('[profiles/active]', err)

@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
       careerId: p.careerId,
       pensumId: p.pensumId,
       currentSemester: p.currentSemester,
+      isActive: p.isActive,
       career: {
         id: p.career.id,
         name: p.career.name,

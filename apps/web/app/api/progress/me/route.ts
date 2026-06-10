@@ -7,7 +7,9 @@ export async function GET(request: NextRequest) {
   if (!userId) return unauthorized()
 
   const profile = await prisma.studentProfile.findFirst({
+    // La carrera activa; si ninguna está marcada (datos antiguos), la más antigua
     where: { userId },
+    orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }],
     include: {
       career: {
         include: {

@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ya tienes esta carrera agregada' }, { status: 400 })
     }
 
+    // La primera carrera del usuario queda como activa
+    const totalProfiles = await prisma.studentProfile.count({ where: { userId } })
+    const isActive = totalProfiles === 0
+
     // Auto-select active pensum if not provided
     if (!pensumId) {
       const activePensum = await prisma.pensum.findFirst({
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = await prisma.studentProfile.create({
-      data: { userId, careerId, pensumId: pensumId ?? null, currentSemester },
+      data: { userId, careerId, pensumId: pensumId ?? null, currentSemester, isActive },
       include: {
         career: {
           include: {
