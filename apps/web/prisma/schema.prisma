@@ -299,7 +299,7 @@ model ProfessorTeaching {
   universityId String
   subjectName  String
   subjectCode  String?      // código de la materia del pensum (si calza con una real)
-  schedule     ScheduleType?
+  schedule     ScheduleType[]
   createdAt    DateTime     @default(now())
 
   professor  Professor  @relation(fields: [professorId], references: [id], onDelete: Cascade)
@@ -349,7 +349,7 @@ model ProfessorRequest {
   universityId   String?
   universityName String?
   subjects       String[]
-  schedule       ScheduleType        @default(MORNING)
+  schedule       ScheduleType[]
   bio            String?
   comment        String?
   status         PensumRequestStatus @default(PENDING)

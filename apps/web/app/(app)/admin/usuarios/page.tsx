@@ -1622,9 +1622,9 @@ function RequestsTab() {
 
 // ─── Profesores Admin Tab ──────────────────────────────────────────────────────
 
-type ProfReq = { id: string; name: string; subjects: string[]; schedule: string; bio: string | null; comment: string | null; status: string; createdAt: string; user: { id: string; displayName: string; email: string }; university: { id: string; name: string; shortName: string } | null; universityName: string | null }
+type ProfReq = { id: string; name: string; subjects: string[]; schedule: string[]; bio: string | null; comment: string | null; status: string; createdAt: string; user: { id: string; displayName: string; email: string }; university: { id: string; name: string; shortName: string } | null; universityName: string | null }
 type ProfUpdateReq = { id: string; details: string; status: string; createdAt: string; user: { id: string; displayName: string; email: string }; professor: { id: string; name: string } }
-type AdminProf = { id: string; name: string; bio: string | null; status: string; teachings: { id: string; subjectName: string; schedule: string; university: { id: string; name: string; shortName: string } }[]; _count: { ratings: number; comments: number } }
+type AdminProf = { id: string; name: string; bio: string | null; status: string; teachings: { id: string; subjectName: string; schedule: string[]; university: { id: string; name: string; shortName: string } }[]; _count: { ratings: number; comments: number } }
 
 const SCHED_LABELS: Record<string, string> = { MORNING: 'Mañana', AFTERNOON: 'Tarde', NIGHT: 'Noche' }
 const REQ_STATUS_LABELS: Record<string, string> = { PENDING: 'Pendiente', IN_REVIEW: 'En revisión', COMPLETED: 'Aprobada', REJECTED: 'Rechazada' }
@@ -1643,7 +1643,7 @@ function ProfesoresAdminTab() {
   const [teachingProfId, setTeachingProfId] = useState<string | null>(null)
   const [teachingUniversityId, setTeachingUniversityId] = useState('')
   const [teachingSubject, setTeachingSubject] = useState('')
-  const [teachingSchedule, setTeachingSchedule] = useState('MORNING')
+  const [teachingSchedule, setTeachingSchedule] = useState<string[]>([])
   const [teachingLoading, setTeachingLoading] = useState(false)
   const [adminUnis, setAdminUnis] = useState<{ id: string; name: string; shortName: string }[]>([])
   const [teachingSubjects, setTeachingSubjects] = useState<string[]>([])
@@ -1698,7 +1698,7 @@ function ProfesoresAdminTab() {
     try {
       const res = await fetch(`/api/admin/professors/${teachingProfId}/teachings`, { method: 'POST', headers: authHdr(), body: JSON.stringify({ universityId: teachingUniversityId, subjectName: teachingSubject, schedule: teachingSchedule }) })
       const json = await res.json(); if (!res.ok) throw new Error(json.error)
-      toast.success('Materia agregada'); setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSchedule('MORNING'); setTeachingSubjects([]); loadAll()
+      toast.success('Materia agregada'); setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSchedule([]); setTeachingSubjects([]); loadAll()
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error') } finally { setTeachingLoading(false) }
   }
 
@@ -1761,7 +1761,7 @@ function ProfesoresAdminTab() {
                   <button onClick={() => setTeachingProfId(p.id)} className="px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--accent)' }}>+ Materia</button>
                 </div>
               </div>
-              {p.teachings.length > 0 && <div className="flex flex-wrap gap-1.5">{p.teachings.map((t) => <span key={t.id} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>{t.subjectName} · {t.university.shortName} · {SCHED_LABELS[t.schedule]}</span>)}</div>}
+              {p.teachings.length > 0 && <div className="flex flex-wrap gap-1.5">{p.teachings.map((t) => <span key={t.id} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>{t.subjectName} · {t.university.shortName}{t.schedule.length > 0 ? ` · ${t.schedule.map((s) => SCHED_LABELS[s]).join(', ')}` : ''}</span>)}</div>}
             </div>
           ))}
           {teachingProfId && (
@@ -1779,7 +1779,7 @@ function ProfesoresAdminTab() {
                 ) : (
                   <input value={teachingSubject} onChange={(e) => setTeachingSubject(e.target.value)} required placeholder={teachingUniversityId ? 'Sin materias registradas — escribir nombre' : 'Primero selecciona una universidad'} disabled={!teachingUniversityId} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none disabled:opacity-50" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
                 )}
-                <select value={teachingSchedule} onChange={(e) => setTeachingSchedule(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm outline-none cursor-pointer" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}>{[['MORNING','Mañana'],['AFTERNOON','Tarde'],['NIGHT','Noche']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+                <div className="flex gap-2">{[['MORNING','Mañana'],['AFTERNOON','Tarde'],['NIGHT','Noche']].map(([v,l]) => { const on = teachingSchedule.includes(v); return <button key={v} type="button" onClick={() => setTeachingSchedule((prev) => on ? prev.filter((s) => s !== v) : [...prev, v])} className="flex-1 py-2 rounded-xl text-sm font-medium cursor-pointer" style={{ background: on ? 'var(--accent)' : 'var(--bg)', color: on ? '#0b0d12' : 'var(--muted)', border: `1px solid ${on ? 'var(--accent)' : 'var(--pt-border)'}` }}>{l}</button> })}</div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setTeachingProfId(null); setTeachingUniversityId(''); setTeachingSubject(''); setTeachingSubjects([]) }} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>Cancelar</button>
                   <button type="submit" disabled={teachingLoading} className="flex-1 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 cursor-pointer" style={{ background: 'var(--accent)', color: '#0b0d12' }}>{teachingLoading ? 'Agregando...' : 'Agregar'}</button>
@@ -1799,7 +1799,7 @@ function ProfesoresAdminTab() {
                   <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{r.name}</p>
                   <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: r.status === 'PENDING' ? 'rgba(245,158,11,0.12)' : r.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : 'rgba(248,113,113,0.12)', color: r.status === 'PENDING' ? '#f59e0b' : r.status === 'COMPLETED' ? '#10b981' : '#f87171' }}>{REQ_STATUS_LABELS[r.status]}</span>
                 </div>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>{r.university?.name ?? r.universityName ?? 'Sin universidad'} · {SCHED_LABELS[r.schedule]}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>{r.university?.name ?? r.universityName ?? 'Sin universidad'}{r.schedule.length > 0 ? ` · ${r.schedule.map((s) => SCHED_LABELS[s]).join(', ')}` : ''}</p>
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>Materias: {r.subjects.join(', ')}</p>
                 {r.comment && <p className="text-xs italic" style={{ color: 'var(--muted)' }}>{r.comment}</p>}
                 <p className="text-xs" style={{ color: 'var(--muted)' }}>Por: {r.user.displayName}</p>

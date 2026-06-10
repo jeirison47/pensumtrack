@@ -28,7 +28,7 @@ export default function SolicitarProfesorPage() {
   const [universityId, setUniversityId] = useState('')
   const [universityName, setUniversityName] = useState('')
   const [subjects, setSubjects] = useState<string[]>([])
-  const [schedule, setSchedule] = useState('MORNING')
+  const [schedules, setSchedules] = useState<string[]>([])
   const [bio, setBio] = useState('')
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
@@ -88,7 +88,7 @@ export default function SolicitarProfesorPage() {
           universityId: universityId && universityId !== '_other' ? universityId : undefined,
           universityName: universityId === '_other' ? (universityName || undefined) : undefined,
           subjects,
-          schedule,
+          schedule: schedules,
           bio: bio || undefined,
           comment: comment || undefined,
         }),
@@ -253,19 +253,23 @@ export default function SolicitarProfesorPage() {
 
         {/* Horario */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm" style={{ color: 'var(--muted)' }}>Horario habitual</label>
+          <label className="text-sm" style={{ color: 'var(--muted)' }}>Horario habitual <span style={{ color: 'var(--muted)' }}>(puede elegir varios)</span></label>
           <div className="flex gap-2">
-            {SCHEDULE_OPTIONS.map((o) => (
-              <button key={o.value} type="button" onClick={() => setSchedule(o.value)}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-                      style={{
-                        background: schedule === o.value ? 'var(--accent)' : 'var(--surface)',
-                        color: schedule === o.value ? '#0b0d12' : 'var(--muted)',
-                        border: `1px solid ${schedule === o.value ? 'var(--accent)' : 'var(--pt-border)'}`,
-                      }}>
-                {o.label}
-              </button>
-            ))}
+            {SCHEDULE_OPTIONS.map((o) => {
+              const active = schedules.includes(o.value)
+              return (
+                <button key={o.value} type="button"
+                        onClick={() => setSchedules((prev) => active ? prev.filter((s) => s !== o.value) : [...prev, o.value])}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+                        style={{
+                          background: active ? 'var(--accent)' : 'var(--surface)',
+                          color: active ? '#0b0d12' : 'var(--muted)',
+                          border: `1px solid ${active ? 'var(--accent)' : 'var(--pt-border)'}`,
+                        }}>
+                  {o.label}
+                </button>
+              )
+            })}
           </div>
         </div>
 

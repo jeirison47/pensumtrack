@@ -8,7 +8,7 @@ const schema = z.object({
   universityId: z.string().optional(),
   universityName: z.string().optional(),
   subjects: z.array(z.string().min(2)).min(1, 'Agrega al menos una materia'),
-  schedule: z.enum(['MORNING', 'AFTERNOON', 'NIGHT']).default('MORNING'),
+  schedule: z.array(z.enum(['MORNING', 'AFTERNOON', 'NIGHT'])).default([]),
   bio: z.string().max(500).optional(),
   comment: z.string().max(500).optional(),
 })

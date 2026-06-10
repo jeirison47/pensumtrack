@@ -7,7 +7,7 @@ import { resolveSubjectCode } from '@/lib/subjectLink'
 const schema = z.object({
   universityId: z.string().min(1),
   subjectName: z.string().min(2),
-  schedule: z.enum(['MORNING', 'AFTERNOON', 'NIGHT']).default('MORNING'),
+  schedule: z.array(z.enum(['MORNING', 'AFTERNOON', 'NIGHT'])).default([]),
 })
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
