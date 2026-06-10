@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserId, unauthorized, forbidden } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
-import { getTrialPlan, TRIAL_DAYS } from '@/lib/trial'
+import { getTrialPlan, getTrialDays } from '@/lib/trial'
 
 // Activa la prueba de 7 días a un usuario (acción manual del admin, con override:
 // se puede otorgar aunque el usuario ya la haya usado antes).
@@ -19,7 +19,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'No hay un plan premium configurado.' }, { status: 400 })
   }
 
-  const expiresAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+  const trialDays = await getTrialDays()
+  const expiresAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
 
   await prisma.user.update({
     where: { id },

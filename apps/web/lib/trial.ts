@@ -1,6 +1,13 @@
 import { prisma } from '@/lib/db'
 
-export const TRIAL_DAYS = 7
+export const DEFAULT_TRIAL_DAYS = 30
+
+// Duración de la prueba en días, configurable desde el admin (AppConfig).
+export async function getTrialDays(): Promise<number> {
+  const config = await prisma.appConfig.findUnique({ where: { key: 'trial_days' } })
+  const n = config ? parseInt(config.value) : NaN
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_TRIAL_DAYS
+}
 
 // El plan que otorga la prueba gratis: el primer plan de pago (no default).
 export function getTrialPlan() {

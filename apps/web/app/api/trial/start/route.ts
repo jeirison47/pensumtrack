@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserId, unauthorized } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
 import { resolveEffectivePlan } from '@/lib/plan'
-import { getTrialPlan, isTrialAvailable, TRIAL_DAYS } from '@/lib/trial'
+import { getTrialPlan, isTrialAvailable, getTrialDays } from '@/lib/trial'
 
 export async function POST(request: NextRequest) {
   const userId = getUserId(request)
@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No hay un plan premium configurado.' }, { status: 400 })
   }
 
-  const expiresAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+  const trialDays = await getTrialDays()
+  const expiresAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
 
   const updated = await prisma.user.update({
     where: { id: userId },

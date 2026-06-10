@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi, userApi } from '@/services/api'
@@ -53,6 +53,13 @@ export default function PerfilPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [trialLoading, setTrialLoading] = useState(false)
+  const [trialDays, setTrialDays] = useState(30)
+
+  useEffect(() => {
+    if (user?.trialAvailable) {
+      fetch('/api/trial/info').then((r) => r.json()).then((j) => j.data?.days && setTrialDays(j.data.days)).catch(() => {})
+    }
+  }, [user?.trialAvailable])
 
   const startTrial = async () => {
     setTrialLoading(true)
@@ -347,12 +354,12 @@ export default function PerfilPage() {
             <p className="text-sm font-bold" style={{ color: 'var(--text)' }}>Prueba Premium gratis</p>
           </div>
           <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
-            Desbloquea todas las funciones por <strong style={{ color: 'var(--text)' }}>7 días</strong>, sin pago. Al terminar vuelves al plan gratis automáticamente.
+            Desbloquea todas las funciones por <strong style={{ color: 'var(--text)' }}>{trialDays} días</strong>, sin pago. Al terminar vuelves al plan gratis automáticamente.
           </p>
           <button onClick={startTrial} disabled={trialLoading}
                   className="w-full py-2.5 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50"
                   style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-            {trialLoading ? 'Activando...' : 'Activar prueba de 7 días'}
+            {trialLoading ? 'Activando...' : `Activar prueba de ${trialDays} días`}
           </button>
         </div>
       )}

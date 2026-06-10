@@ -560,6 +560,10 @@ function PlansTab() {
   const [fetchingRate, setFetchingRate] = useState(false)
   const [savingRate, setSavingRate] = useState(false)
 
+  // Duración de la prueba gratis
+  const [trialDays, setTrialDays] = useState('')
+  const [savingTrial, setSavingTrial] = useState(false)
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : ''
   const authHdr = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
@@ -576,7 +580,23 @@ function PlansTab() {
       .then((r) => r.json())
       .then((j) => j.data && setSavedRate(j.data))
       .catch(() => {})
+    fetch('/api/admin/trial-config', { headers: authHdr })
+      .then((r) => r.json())
+      .then((j) => j.data && setTrialDays(String(j.data.days)))
+      .catch(() => {})
   }, [fetchPlans])
+
+  async function saveTrialDays() {
+    setSavingTrial(true)
+    try {
+      const res = await fetch('/api/admin/trial-config', { method: 'POST', headers: authHdr, body: JSON.stringify({ days: Number(trialDays) }) })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error)
+      setTrialDays(String(j.data.days))
+      toast.success('Duración de la prueba guardada')
+    } catch (err: any) { toast.error(err.message || 'Error al guardar') }
+    finally { setSavingTrial(false) }
+  }
 
   async function fetchLiveRate() {
     setFetchingRate(true)
@@ -672,6 +692,28 @@ function PlansTab() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Duración de la prueba gratis */}
+      <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Duración de la prueba gratis</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Días que dura la prueba Premium antes de volver al plan gratis.</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)' }}>
+              <input type="number" min="1" max="365" value={trialDays} onChange={(e) => setTrialDays(e.target.value)}
+                     className="w-16 bg-transparent text-sm font-semibold outline-none text-center" style={{ color: 'var(--accent)' }} />
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>días</span>
+            </div>
+            <button onClick={saveTrialDays} disabled={savingTrial || !trialDays}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50"
+                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              {savingTrial ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
