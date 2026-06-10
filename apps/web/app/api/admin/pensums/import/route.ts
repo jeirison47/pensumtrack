@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserId, unauthorized, forbidden } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
 import { type ParsedPensum } from '@/lib/parsePensum'
+import { relinkProfessorTeachings } from '@/lib/subjectLink'
 
 export async function POST(request: NextRequest) {
   const userId = getUserId(request)
@@ -83,6 +84,9 @@ export async function POST(request: NextRequest) {
       _count: { select: { subjects: true, profiles: true } },
     },
   })
+
+  // Religar materias de profesores que ahora calcen con este pensum nuevo
+  try { await relinkProfessorTeachings(universityId) } catch { /* no crítico */ }
 
   const data = {
     id: newPensum.id,
