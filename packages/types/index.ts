@@ -13,7 +13,8 @@ export interface Subject {
   code: string          // Ej: "TSO-001"
   name: string
   credits: number
-  semester: number      // Cuatrimestre en el pensum (1–N)
+  semester: number      // Cuatrimestre en el pensum (1–N; 0 = ciclo básico)
+  periodLabel?: string | null // Nombre del bloque si no es período numerado (ej. "Electivas")
   prerequisites: string[]
   corequisites: string[]
   area?: string | null

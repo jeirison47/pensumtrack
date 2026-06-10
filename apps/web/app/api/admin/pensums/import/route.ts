@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
           name: s.name,
           credits: s.credits,
           semester: s.semester,
+          periodLabel: s.periodLabel ?? undefined,
           area: s.area ?? undefined,
           prerequisites: s.prerequisites,
           corequisites: s.corequisites,

@@ -152,6 +152,7 @@ model Subject {
   name          String
   credits       Int
   semester      Int
+  periodLabel   String?  // nombre del bloque si no es un período numerado (ej. "Electivas", "Ciclo Básico")
   area          String?
   careerId      String
   pensumId      String?

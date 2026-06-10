@@ -125,7 +125,7 @@ export default function PensumPage() {
           {bySemester.map(([sem, subjects]) => (
             <div key={sem}>
               <h2 className="text-xs font-semibold mb-3 tracking-wider" style={{ color: 'var(--muted)' }}>
-                CUATRIMESTRE {sem}
+                {(subjects.find((s) => s.periodLabel)?.periodLabel ?? `Cuatrimestre ${sem}`).toUpperCase()}
               </h2>
               <div className="flex flex-col gap-2">
                 {subjects.map((s) => {

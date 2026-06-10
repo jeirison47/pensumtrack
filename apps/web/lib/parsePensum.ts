@@ -5,6 +5,7 @@ export interface ParsedSubject {
   name: string
   credits: number
   semester: number
+  periodLabel: string | null
   area: string | null
   prerequisites: string[]
   corequisites: string[]
@@ -91,14 +92,29 @@ export function parsePensum(text: string): ParsedPensum {
   const subjects: ParsedSubject[] = []
   const codesSeen = new Set<string>()
 
+  let sawNumbered = false
+  let maxNumbered = 0
+  let afterCounter = 0
+
   for (const section of sections) {
     const lines = section.split(/\r?\n/)
     const header = lines[0].trim()
 
-    // Extract period number from header (e.g. "Período 1", "Semestre 2", "1")
+    // Período numerado ("Período 1", "Cuatrimestre 2"...) o sección con nombre
+    // sin número ("Electivas", "Ciclo Básico", "Optativas"...).
     const numMatch = header.match(/(\d+)/)
-    if (!numMatch) { warnings.push(`Sección ignorada (no se encontró número de período): "${header}"`); continue }
-    const semester = parseInt(numMatch[1])
+    let semester: number
+    let periodLabel: string | null = null
+    if (numMatch) {
+      semester = parseInt(numMatch[1])
+      sawNumbered = true
+      if (semester > maxNumbered) maxNumbered = semester
+    } else {
+      periodLabel = header
+      // Antes del primer período numerado → ciclo básico (al inicio).
+      // Después → bloque de electivas/optativas (al final).
+      semester = sawNumbered ? maxNumbered + (++afterCounter) : 0
+    }
 
     const tableBlock = lines.slice(1).join('\n')
     const rows = parseTableRows(tableBlock)
@@ -131,6 +147,7 @@ export function parsePensum(text: string): ParsedPensum {
         name,
         credits,
         semester,
+        periodLabel,
         area: area && area !== '-' ? area : null,
         prerequisites,
         corequisites,
