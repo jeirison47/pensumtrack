@@ -89,6 +89,8 @@ function UsersTab() {
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [bulkTrialConfirm, setBulkTrialConfirm] = useState(false)
+  const [trialUser, setTrialUser] = useState<AdminUser | null>(null)
   const [bulkActing, setBulkActing] = useState(false)
   const [bulkPlanId, setBulkPlanId] = useState('')
   const selectAllRef = useRef<HTMLInputElement>(null)
@@ -236,7 +238,6 @@ function UsersTab() {
   }
 
   async function handleActivateTrial(user: AdminUser) {
-    if (!confirm(`¿Activar la prueba Premium de ${trialDays} días a ${user.email}?`)) return
     try {
       const res = await fetch(`/api/admin/users/${user.id}/trial`, {
         method: 'POST',
@@ -246,7 +247,8 @@ function UsersTab() {
       if (!res.ok) throw new Error(json.error)
       const plan = plans.find((p) => p.name === json.data.planName) ?? null
       setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, plan: { id: plan?.id ?? '', name: json.data.planName } } : u))
-      toast.success('Prueba de 7 días activada')
+      toast.success(`Prueba de ${trialDays} días activada`)
+      setTrialUser(null)
     } catch (err: any) {
       toast.error(err.message || 'Error al activar la prueba')
     }
@@ -312,7 +314,7 @@ function UsersTab() {
             style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>
             Desactivar
           </button>
-          <button onClick={() => { if (confirm(`¿Activar la prueba Premium de ${trialDays} días a ${selected.size} usuario(s) seleccionados? Se les enviará un correo.`)) handleBulkAction('trial') }} disabled={bulkActing}
+          <button onClick={() => setBulkTrialConfirm(true)} disabled={bulkActing}
             className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition hover:opacity-70 disabled:opacity-40"
             style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)' }}>
             <Sparkles size={12} />
@@ -453,7 +455,7 @@ function UsersTab() {
                     style={{ color: user.isActive ? 'var(--muted)' : 'var(--danger)' }}>
                     {user.isActive ? <UserX size={15} /> : <UserCheck size={15} />}
                   </button>
-                  <button onClick={() => handleActivateTrial(user)}
+                  <button onClick={() => setTrialUser(user)}
                     title={`Activar prueba Premium ${trialDays} días`}
                     className="p-1.5 rounded-lg transition hover:opacity-70"
                     style={{ color: 'var(--accent)' }}>
@@ -549,6 +551,24 @@ function UsersTab() {
         dangerous
         onConfirm={() => handleBulkAction('delete')}
         onCancel={() => setBulkDeleteConfirm(false)}
+      />
+
+      {/* Activar prueba — masivo */}
+      <ConfirmModal
+        open={bulkTrialConfirm}
+        message={`¿Activar la prueba Premium de ${trialDays} días a ${selected.size} usuario(s) seleccionados? Se les enviará un correo.`}
+        confirmLabel={bulkActing ? 'Activando...' : 'Activar prueba'}
+        onConfirm={async () => { await handleBulkAction('trial'); setBulkTrialConfirm(false) }}
+        onCancel={() => setBulkTrialConfirm(false)}
+      />
+
+      {/* Activar prueba — individual */}
+      <ConfirmModal
+        open={!!trialUser}
+        message={`¿Activar la prueba Premium de ${trialDays} días a ${trialUser?.email}? Se le enviará un correo.`}
+        confirmLabel="Activar prueba"
+        onConfirm={() => { if (trialUser) handleActivateTrial(trialUser) }}
+        onCancel={() => setTrialUser(null)}
       />
     </div>
   )
