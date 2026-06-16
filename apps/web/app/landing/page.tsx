@@ -69,7 +69,7 @@ interface PlanData {
   features: { featureKey: string }[]
 }
 
-function PlansSection() {
+function PlansSection({ trialDays }: { trialDays: number }) {
   const { toDOP } = useExchangeRate()
   const { data, isLoading } = useQuery<{ data: PlanData[] }>({
     queryKey: ['plans-public'],
@@ -126,6 +126,11 @@ function PlansSection() {
                 </>
               )}
             </div>
+            {featured && trialDays > 0 && (
+              <p className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+                <Sparkles size={12} /> {trialDays} días de prueba gratis
+              </p>
+            )}
             <ul className="space-y-2 flex-1">
               {plan.features.length === 0 && (
                 <li className="text-sm" style={{ color: 'var(--muted)' }}>
@@ -161,9 +166,11 @@ function PlansSection() {
 
 export default function LandingPage() {
   const [loggedIn, setLoggedIn] = useState(false)
+  const [trialDays, setTrialDays] = useState(0)
 
   useEffect(() => {
     setLoggedIn(typeof window !== 'undefined' && !!localStorage.getItem('token'))
+    fetch('/api/trial/info').then((r) => r.json()).then((j) => j.data?.days && setTrialDays(j.data.days)).catch(() => {})
   }, [])
 
   return (
@@ -219,6 +226,12 @@ export default function LandingPage() {
         <p className="text-base max-w-xl" style={{ color: 'var(--muted)' }}>
           PensumTrack te ayuda a visualizar tu pensum, gestionar prerrequisitos, planificar preselecciones, consultar profesores y registrar tu avance académico en un solo lugar.
         </p>
+        {trialDays > 0 && (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold"
+            style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--accent)', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <Sparkles size={15} /> Regístrate y prueba Premium gratis por {trialDays} días
+          </div>
+        )}
         <div className="flex flex-wrap justify-center gap-3 mt-2">
           <Link href="/register"
             className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition hover:opacity-90"
@@ -271,7 +284,7 @@ export default function LandingPage() {
             Empieza gratis y desbloquea funciones avanzadas cuando lo necesites. Pagos en pesos dominicanos.
           </p>
         </div>
-        <PlansSection />
+        <PlansSection trialDays={trialDays} />
       </section>
 
       {/* Contacto */}
