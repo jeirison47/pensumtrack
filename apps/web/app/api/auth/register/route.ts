@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db'
 import { sendOtpEmail } from '@/lib/email'
 import { verifyTurnstile, getClientIp } from '@/lib/turnstile'
 import { rateLimit, tooManyRequests } from '@/lib/rateLimit'
+import { EMAIL_VERIFICATION_ENABLED } from '@/lib/emailVerification'
+import { authUserInclude, authSessionResponse } from '@/lib/authSession'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -62,6 +64,27 @@ export async function POST(request: NextRequest) {
     if (usernameClash) return NextResponse.json({ error: 'Ese nombre de usuario ya está en uso' }, { status: 400 })
 
     const passwordHash = await bcrypt.hash(password, 10)
+
+    // Verificación por correo APAGADA (ver lib/emailVerification.ts): se crea la
+    // cuenta al instante y se inicia sesión directo, sin enviar código.
+    if (!EMAIL_VERIFICATION_ENABLED) {
+      const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true }, select: { id: true } })
+      const user = await prisma.user.create({
+        data: {
+          email,
+          username,
+          passwordHash,
+          displayName,
+          isEmailVerified: false, // el correo no se comprobó; el admin lo ve como "sin verificar"
+          ...(defaultPlan ? { planId: defaultPlan.id } : {}),
+        },
+        include: authUserInclude,
+      })
+      // Si había quedado un registro a medias (de cuando sí se pedía código), ya sobra
+      await prisma.pendingRegistration.deleteMany({ where: { email } }).catch(() => {})
+      return authSessionResponse(user, 201)
+    }
+
     const code = generateOtp()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
 

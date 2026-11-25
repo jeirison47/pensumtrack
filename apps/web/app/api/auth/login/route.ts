@@ -8,6 +8,8 @@ import { resolveEffectivePlan } from '@/lib/plan'
 import { isTrialAvailable } from '@/lib/trial'
 import { getClientIp } from '@/lib/turnstile'
 import { rateLimit, tooManyRequests } from '@/lib/rateLimit'
+import { EMAIL_VERIFICATION_ENABLED } from '@/lib/emailVerification'
+import { authUserInclude } from '@/lib/authSession'
 
 const schema = z.object({
   identifier: z.string().min(1, 'Email o usuario requerido'),
@@ -33,13 +35,40 @@ export async function POST(request: NextRequest) {
     const rl = await rateLimit(`login:${ip}`, 10, 5 * 60 * 1000)
     if (!rl.allowed) return tooManyRequests(rl.retryAfterSec)
 
-    const user = await prisma.user.findFirst({
-      where: identifier.includes('@') ? { email: identifier } : { username: identifier },
-      include: {
-        plan: { select: { name: true, isDefault: true, features: { select: { featureKey: true } } } },
-        profiles: { select: { id: true, careerId: true, currentSemester: true }, take: 1, orderBy: { createdAt: 'asc' } },
-      },
+    const byIdentifier = identifier.includes('@') ? { email: identifier } : { username: identifier }
+
+    let user = await prisma.user.findFirst({
+      where: byIdentifier,
+      include: authUserInclude,
     })
+
+    // Verificación APAGADA (ver lib/emailVerification.ts): quien se registró pero
+    // se quedó esperando un código que nunca llegó (registro pendiente) puede
+    // entrar con su contraseña; su cuenta se crea en este momento.
+    if (!user && !EMAIL_VERIFICATION_ENABLED) {
+      const pending = await prisma.pendingRegistration.findFirst({ where: byIdentifier })
+      if (pending && (await bcrypt.compare(password, pending.passwordHash))) {
+        const [emailTaken, usernameTaken] = await Promise.all([
+          prisma.user.findUnique({ where: { email: pending.email }, select: { id: true } }),
+          prisma.user.findUnique({ where: { username: pending.username }, select: { id: true } }),
+        ])
+        if (!emailTaken && !usernameTaken) {
+          const defaultPlan = await prisma.plan.findFirst({ where: { isDefault: true }, select: { id: true } })
+          user = await prisma.user.create({
+            data: {
+              email: pending.email,
+              username: pending.username,
+              passwordHash: pending.passwordHash,
+              displayName: pending.displayName,
+              isEmailVerified: false,
+              ...(defaultPlan ? { planId: defaultPlan.id } : {}),
+            },
+            include: authUserInclude,
+          })
+          await prisma.pendingRegistration.delete({ where: { id: pending.id } }).catch(() => {})
+        }
+      }
+    }
 
     if (!user || !user.passwordHash) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 })
@@ -52,8 +81,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cuenta desactivada' }, { status: 403 })
     }
 
-    // Si el email no está verificado, enviar nuevo OTP y pedir verificación
-    if (!user.isEmailVerified) {
+    // Si el email no está verificado, enviar nuevo OTP y pedir verificación.
+    // Con la verificación APAGADA (lib/emailVerification.ts) se deja entrar igual.
+    if (!user.isEmailVerified && EMAIL_VERIFICATION_ENABLED) {
       await prisma.emailVerification.updateMany({
         where: { userId: user.id, used: false },
         data: { used: true },
