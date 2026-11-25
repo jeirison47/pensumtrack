@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getUserId, unauthorized } from '@/lib/auth-helper'
 import { prisma } from '@/lib/db'
+
+const scheduleSchema = z.record(z.object({
+  classDays: z.array(z.string()).optional().default([]),
+  classStart: z.string().nullable().optional().default(null),
+  classEnd: z.string().nullable().optional().default(null),
+  professorId: z.string().nullable().optional().default(null),
+  professorName: z.string().nullable().optional().default(null),
+  classroom: z.string().nullable().optional().default(null),
+}))
+
+const bodySchema = z.object({
+  schedules: scheduleSchema.optional().default({}),
+})
 
 export async function PUT(
   request: NextRequest,
@@ -12,7 +26,11 @@ export async function PUT(
 
     const { id } = await params
 
-    const profile = await prisma.studentProfile.findFirst({ where: { userId } })
+    const body = await request.json()
+    const parsed = bodySchema.safeParse(body)
+    const schedules = parsed.success ? parsed.data.schedules : {}
+
+    const profile = await prisma.studentProfile.findFirst({ where: { userId }, orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }] })
     if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
 
     const preselection = await prisma.preselection.findFirst({
@@ -28,13 +46,34 @@ export async function PUT(
 
     const [updated] = await prisma.$transaction([
       prisma.preselection.update({ where: { id }, data: { status: 'CONFIRMED' } }),
-      ...preselection.subjects.map((code) =>
-        prisma.studentSubject.upsert({
+      ...preselection.subjects.map((code) => {
+        const sched = schedules[code]
+        return prisma.studentSubject.upsert({
           where: { profileId_subjectCode: { profileId: profile.id, subjectCode: code } },
-          create: { profileId: profile.id, subjectCode: code, status: 'IN_PROGRESS', period: periodLabel },
-          update: { status: 'IN_PROGRESS', period: periodLabel },
-        }),
-      ),
+          create: {
+            profileId: profile.id,
+            subjectCode: code,
+            status: 'IN_PROGRESS',
+            period: periodLabel,
+            classDays: sched?.classDays ?? [],
+            classStart: sched?.classStart ?? null,
+            classEnd: sched?.classEnd ?? null,
+            professorId: sched?.professorId ?? null,
+            professorName: sched?.professorName ?? null,
+            classroom: sched?.classroom ?? null,
+          },
+          update: {
+            status: 'IN_PROGRESS',
+            period: periodLabel,
+            classDays: sched?.classDays ?? [],
+            classStart: sched?.classStart ?? null,
+            classEnd: sched?.classEnd ?? null,
+            professorId: sched?.professorId ?? null,
+            professorName: sched?.professorName ?? null,
+            classroom: sched?.classroom ?? null,
+          },
+        })
+      }),
     ])
 
     return NextResponse.json({

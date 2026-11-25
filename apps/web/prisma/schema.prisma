@@ -196,6 +196,7 @@ model StudentSubject {
   classEnd      String?    // hora fin "20:00"
   professorId   String?    // profesor registrado (si aplica)
   professorName String?    // o texto libre si no está registrado
+  classroom     String?    // aula o lugar de la clase
   updatedAt   DateTime      @updatedAt
 
   profile StudentProfile @relation(fields: [profileId], references: [id])

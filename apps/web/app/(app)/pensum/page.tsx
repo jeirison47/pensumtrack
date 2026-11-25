@@ -81,6 +81,11 @@ export default function PensumPage() {
     invalidateProgress()
   }
 
+  const getGrade = (code: string): number | null =>
+    profile?.subjects.find((s) => s.subjectCode === code)?.grade ?? null
+
+  const gradeOf = (code: string): number | null => getGrade(code)
+
   const scheduleOf = (code: string): ClassSchedule | null => {
     const ss = profile?.subjects.find((s) => s.subjectCode === code)
     if (!ss) return null
@@ -90,6 +95,7 @@ export default function PensumPage() {
       classEnd: ss.classEnd ?? null,
       professorId: ss.professorId ?? null,
       professorName: ss.professorName ?? null,
+      classroom: ss.classroom ?? null,
     }
   }
 
@@ -154,10 +160,18 @@ export default function PensumPage() {
                           {s.prerequisites.length > 0 && ` · ${s.prerequisites.length} prereq.`}
                         </p>
                       </div>
-                      <span className="text-xs font-medium ml-3 flex-shrink-0 px-2 py-1 rounded-full"
-                            style={{ background: `${colors.border}20`, color: colors.text }}>
-                        {STATUS_LABELS[status]}
-                      </span>
+                      <div className="flex items-center ml-3 flex-shrink-0 gap-1">
+                        {status === 'passed' && getGrade(s.code) != null && (
+                          <span className="text-xs font-bold px-2 py-1 rounded-full"
+                                style={{ background: 'rgba(110,231,183,0.25)', color: '#6ee7b7' }}>
+                            {getGrade(s.code)}
+                          </span>
+                        )}
+                        <span className="text-xs font-medium px-2 py-1 rounded-full"
+                              style={{ background: `${colors.border}20`, color: colors.text }}>
+                          {STATUS_LABELS[status]}
+                        </span>
+                      </div>
                     </button>
                   )
                 })}
@@ -175,6 +189,7 @@ export default function PensumPage() {
         preselectedCodes={preselectedCodes}
         onClose={() => setSelected(null)}
         onChangeStatus={handleChangeStatus}
+        gradeOf={gradeOf}
         scheduleOf={scheduleOf}
         universityId={profile?.career.university.id}
       />

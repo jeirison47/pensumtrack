@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, Lock, Clock, Star, X } from 'lucide-react'
+import { CheckCircle, XCircle, Lock, Clock, Star, X, Pencil } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { usePlan } from '@/hooks/usePlan'
 import { PlanGateModal } from '@/components/ui/PlanGateModal'
@@ -97,6 +97,8 @@ export function SubjectModal({
   const [gradeInput, setGradeInput] = useState('')
   const [awaitingGrade, setAwaitingGrade] = useState(false)
   const [gateOpen, setGateOpen] = useState(false)
+  const [editingGrade, setEditingGrade] = useState(false)
+  const [editGradeValue, setEditGradeValue] = useState('')
   const { hasFeature } = usePlan()
 
   // Horario de clase (al marcar en curso o editar)
@@ -108,11 +110,14 @@ export function SubjectModal({
   const [profName, setProfName] = useState('')
   const [profList, setProfList] = useState<{ id: string; name: string }[]>([])
   const [profOpen, setProfOpen] = useState(false)
+  const [classroom, setClassroom] = useState('')
 
   useEffect(() => {
     setGradeInput('')
     setAwaitingGrade(false)
     setSchedMode(false)
+    setEditingGrade(false)
+    setEditGradeValue('')
   }, [subject?.code])
 
   // Cargar profesores (de la universidad) la primera vez que se abre el horario
@@ -130,6 +135,7 @@ export function SubjectModal({
     setSchedEnd(cur?.classEnd ?? '')
     setProfId(cur?.professorId ?? null)
     setProfName(cur?.professorName ?? '')
+    setClassroom(cur?.classroom ?? '')
     setProfOpen(false)
     setSchedMode(true)
   }
@@ -141,6 +147,7 @@ export function SubjectModal({
       classEnd: schedEnd || null,
       professorId: profId,
       professorName: profName.trim() || null,
+      classroom: classroom.trim() || null,
     }
     onChangeStatus?.(subject!.code, 'IN_PROGRESS', undefined, schedule)
     onClose()
@@ -285,17 +292,61 @@ export function SubjectModal({
         <div className="flex items-center gap-3 p-3 rounded-xl"
              style={{ background: 'var(--surface2)' }}>
           <Star size={15} style={{ color: 'var(--accent)' }} />
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>Nota registrada:</span>
-          <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{currentGrade}</span>
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>Nota:</span>
+          {editingGrade ? (
+            <>
+              <input
+                type="number"
+                min={0} max={100} step={0.01}
+                value={editGradeValue}
+                onChange={(e) => setEditGradeValue(e.target.value)}
+                autoFocus
+                className="w-20 px-2 py-1 rounded-lg text-sm font-bold outline-none"
+                style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }}
+              />
+              <button
+                onClick={() => {
+                  const val = editGradeValue ? Math.min(100, Math.max(0, Number(editGradeValue))) : undefined
+                  onChangeStatus?.(subject.code, 'PASSED', val)
+                  setEditingGrade(false)
+                }}
+                className="text-xs font-semibold px-2 py-1 rounded-lg"
+                style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                OK
+              </button>
+              <button
+                onClick={() => setEditingGrade(false)}
+                className="text-xs px-2 py-1 rounded-lg"
+                style={{ color: 'var(--muted)' }}>
+                X
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{currentGrade}</span>
+              {onChangeStatus && (
+                <button
+                  onClick={() => {
+                    setEditGradeValue(currentGrade.toString())
+                    setEditingGrade(true)
+                  }}
+                  className="p-1 rounded-lg hover:opacity-80"
+                  style={{ color: 'var(--muted)' }}>
+                  <Pencil size={13} />
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
 
       {/* Horario de clase de la materia en curso (solo lectura) */}
       {status === 'in-progress' && !schedMode && (() => {
         const sc = scheduleOf?.(subject.code)
-        const hasInfo = sc && (sc.classDays.length > 0 || sc.classStart || sc.professorId || sc.professorName)
+        const hasInfo = sc && (sc.classDays.length > 0 || sc.classStart || sc.professorId || sc.professorName || sc.classroom)
         if (!hasInfo) return null
         const prof = sc!.professorName
+        const room = sc!.classroom
         return (
           <div className="p-3 rounded-xl space-y-1" style={{ background: 'var(--surface2)' }}>
             <p className="text-xs font-semibold tracking-wider" style={{ color: 'var(--muted)' }}>HORARIO DE CLASE</p>
@@ -306,6 +357,7 @@ export function SubjectModal({
               </p>
             )}
             {prof && <p className="text-sm" style={{ color: 'var(--text)' }}>Prof. {prof}</p>}
+            {room && <p className="text-sm" style={{ color: 'var(--text)' }}>{room}</p>}
           </div>
         )
       })()}
@@ -347,6 +399,8 @@ export function SubjectModal({
               </div>
             )}
           </div>
+          <input value={classroom} onChange={(e) => setClassroom(e.target.value)}
+                 placeholder="Aula o lugar (opcional)" className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
           <div className="flex gap-2">
             <button onClick={confirmSchedule} className="flex-1 py-3 rounded-xl font-semibold text-sm" style={ACTION_STYLES.warn}>Marcar en curso</button>
             <button onClick={() => setSchedMode(false)} className="flex-1 py-3 rounded-xl font-semibold text-sm" style={ACTION_STYLES.ghost}>Cancelar</button>

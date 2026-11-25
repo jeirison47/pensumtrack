@@ -76,6 +76,7 @@ export default function MapaPage() {
         preselectedCodes={preselectedCodes}
         onClose={() => setSelected(null)}
         onChangeStatus={handleChangeStatus}
+        gradeOf={(code) => profile?.subjects.find(s => s.subjectCode === code)?.grade ?? null}
       />
     </>
   )

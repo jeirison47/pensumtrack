@@ -12,7 +12,7 @@ export async function DELETE(
 
     const { id } = await params
 
-    const profile = await prisma.studentProfile.findFirst({ where: { userId } })
+    const profile = await prisma.studentProfile.findFirst({ where: { userId }, orderBy: [{ isActive: 'desc' }, { createdAt: 'asc' }] })
     if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
 
     const preselection = await prisma.preselection.findFirst({

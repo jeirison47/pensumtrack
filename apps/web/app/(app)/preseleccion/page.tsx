@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useProgress } from '@/hooks/useProgress'
 import { useProgressStore } from '@/store/useProgressStore'
 import { progressApi } from '@/services/api'
-import type { PreselectionDB } from '@/services/api'
+import type { PreselectionDB, ClassSchedule } from '@/services/api'
 import { validatePreselection } from '@pensumtrack/utils'
 import { SubjectModal } from '@/components/layout/SubjectModal'
 import { Modal } from '@/components/ui/Modal'
@@ -14,6 +15,11 @@ import type { Subject, SubjectStatus } from '@pensumtrack/types'
 import {
   AlertTriangle, CheckCircle, Plus, Trash2, ChevronDown, ChevronUp, Clock, CalendarDays,
 } from 'lucide-react'
+
+const DAY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'MON', label: 'L' }, { value: 'TUE', label: 'M' }, { value: 'WED', label: 'X' },
+  { value: 'THU', label: 'J' }, { value: 'FRI', label: 'V' }, { value: 'SAT', label: 'S' }, { value: 'SUN', label: 'D' },
+]
 
 const DAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const DAY_FULL: Record<string, string> = { MON: 'Lunes', TUE: 'Martes', WED: 'Miércoles', THU: 'Jueves', FRI: 'Viernes', SAT: 'Sábado', SUN: 'Domingo' }
@@ -39,18 +45,15 @@ function statusBadge(status: PreselectionDB['status']) {
 
 export default function PreseleccionPage() {
   const { hasFeature } = usePlan()
-  const { profile, isLoading, getSubjectStatus, invalidateProgress, allSubjects: hookSubjects } = useProgress()
+  const queryClient = useQueryClient()
+  const { profile, isLoading, getSubjectStatus, invalidateProgress, addCachedPreselection, updateCachedPreselectionSubjects, updateCachedPreselectionStatus, removeCachedPreselection, allSubjects: hookSubjects } = useProgress()
   const {
-    updatePreselectionSubjectsLocally,
-    addPreselectionLocally,
-    removePreselectionLocally,
-    updatePreselectionStatusLocally,
     updateSubjectLocally,
   } = useProgressStore()
 
   // Tab activo
   const preselections: PreselectionDB[] = profile?.preselections ?? []
-  const activePreselection = preselections.find((p) => p.status === 'OPEN' || p.status === 'CONFIRMED')
+  const activePreselection = preselections.find((p) => p.status === 'OPEN')
   const defaultTab = activePreselection?.id ?? preselections[preselections.length - 1]?.id ?? null
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
 
@@ -73,6 +76,9 @@ export default function PreseleccionPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [confirmError, setConfirmError] = useState('')
+  const [confirmSchedules, setConfirmSchedules] = useState<Record<string, ClassSchedule>>({})
+  const [confirmProfList, setConfirmProfList] = useState<{ id: string; name: string }[]>([])
+  const [confirmProfOpen, setConfirmProfOpen] = useState<string | null>(null)
 
   // Cerrar período
   const [showClosePanel, setShowClosePanel] = useState(false)
@@ -88,12 +94,36 @@ export default function PreseleccionPage() {
   const [selectedStatus, setSelectedStatus] = useState<SubjectStatus>('available')
 
   // Vista: horario de clases o preselección
-  const [view, setView] = useState<'horario' | 'preseleccion'>('horario')
+  const [view, setView] = useState<'horario' | 'preseleccion'>(() => {
+    const hasActiveNow = preselections.some((p) => p.status === 'OPEN')
+    return hasActiveNow ? 'preseleccion' : 'horario'
+  })
 
   // ─── Datos derivados ───────────────────────────────────────────────────────
 
   const allSubjects = hookSubjects
-  const hasActive = preselections.some((p) => p.status === 'OPEN' || p.status === 'CONFIRMED')
+  const hasActive = preselections.some((p) => p.status === 'OPEN')
+  const universityId = profile?.career?.university?.id
+
+  // Cargar profesores al abrir modal de confirmación
+  useEffect(() => {
+    if (showConfirmModal && confirmProfList.length === 0) {
+      const url = universityId ? `/api/professors?universityId=${universityId}` : '/api/professors'
+      fetch(url).then((r) => r.json()).then((j) => setConfirmProfList((j.data ?? []).map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })))).catch(() => {})
+    }
+  }, [showConfirmModal, universityId, confirmProfList.length])
+
+  // Inicializar horarios al abrir modal de confirmación
+  useEffect(() => {
+    if (showConfirmModal && current) {
+      const init: Record<string, ClassSchedule> = {}
+      current.subjects.forEach((code) => {
+        init[code] = { classDays: [], classStart: null, classEnd: null, professorId: null, professorName: null, classroom: null }
+      })
+      setConfirmSchedules(init)
+      setConfirmProfOpen(null)
+    }
+  }, [showConfirmModal, current?.id])
 
   const availableSubjects = useMemo(() =>
     allSubjects.filter((s) => {
@@ -136,9 +166,8 @@ export default function PreseleccionPage() {
     const next = currentSubjectCodes.includes(code)
       ? currentSubjectCodes.filter((c) => c !== code)
       : [...currentSubjectCodes, code]
-    updatePreselectionSubjectsLocally(current.id, next)
+    updateCachedPreselectionSubjects(current.id, next)
     await progressApi.updatePeriodSubjects(current.id, next)
-    invalidateProgress()
   }
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -149,13 +178,12 @@ export default function PreseleccionPage() {
       const startISO = new Date(createStart + '-01').toISOString()
       const endISO   = new Date(createEnd   + '-01').toISOString()
       const res = await progressApi.createPeriod(createLabel.trim(), startISO, endISO)
-      addPreselectionLocally(res.data)
+      addCachedPreselection(res.data)
       setActiveTabId(res.data.id)
       setShowCreate(false)
       setCreateLabel('')
       setCreateStart('')
       setCreateEnd('')
-      invalidateProgress()
     } catch (err: unknown) {
       setCreateError(err instanceof Error ? err.message : 'Error al crear período')
     } finally {
@@ -169,10 +197,9 @@ export default function PreseleccionPage() {
     try {
       const revertSubjects = deleteTarget.status === 'CONFIRMED' ? deleteTarget.subjects : []
       await progressApi.deletePeriod(deleteTarget.id)
-      removePreselectionLocally(deleteTarget.id, revertSubjects)
+      removeCachedPreselection(deleteTarget.id)
       if (activeTabId === deleteTarget.id) setActiveTabId(null)
       setDeleteTarget(null)
-      invalidateProgress()
     } catch {
       // silencioso
     } finally {
@@ -185,9 +212,26 @@ export default function PreseleccionPage() {
     setConfirming(true)
     setConfirmError('')
     try {
-      await progressApi.confirmPeriod(current.id)
-      updatePreselectionStatusLocally(current.id, 'CONFIRMED')
-      current.subjects.forEach((code) => updateSubjectLocally(code, 'IN_PROGRESS'))
+      await progressApi.confirmPeriod(current.id, confirmSchedules)
+      updateCachedPreselectionStatus(current.id, 'CONFIRMED')
+      current.subjects.forEach((code) => {
+        const sched = confirmSchedules[code]
+        updateSubjectLocally(code, 'IN_PROGRESS')
+        if (sched) {
+          queryClient.setQueryData<{ data: import('@/services/api').StudentProfileFull }>(['progress'], (old) => {
+            if (!old?.data) return old
+            return {
+              ...old,
+              data: {
+                ...old.data,
+                subjects: old.data.subjects.map((s) =>
+                  s.subjectCode === code ? { ...s, ...sched } : s
+                ),
+              },
+            }
+          })
+        }
+      })
       setShowConfirmModal(false)
       invalidateProgress()
     } catch (err: unknown) {
@@ -217,10 +261,9 @@ export default function PreseleccionPage() {
         grade: closeResults[code]?.grade ? parseFloat(closeResults[code].grade) : undefined,
       }))
       await progressApi.closePeriod(current.id, results)
-      updatePreselectionStatusLocally(current.id, 'CLOSED')
+      updateCachedPreselectionStatus(current.id, 'CLOSED')
       results.forEach(({ subjectCode, status }) => updateSubjectLocally(subjectCode, status))
       setShowClosePanel(false)
-      invalidateProgress()
     } catch (err: unknown) {
       setCloseError(err instanceof Error ? err.message : 'Error al cerrar período')
     } finally {
@@ -484,6 +527,35 @@ export default function PreseleccionPage() {
                     </div>
                   )}
 
+                  {/* Resumen y confirmar (solo OPEN) */}
+                  {current.status === 'OPEN' && currentSubjectCodes.length > 0 && (
+                    <div className="mt-4 p-4 rounded-xl flex flex-col gap-3"
+                         style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: 'var(--muted)' }}>Materias</span>
+                        <span className="font-bold" style={{ color: 'var(--text)' }}>{currentSubjectCodes.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: 'var(--muted)' }}>Créditos</span>
+                        <span className="font-bold" style={{ color: 'var(--text)' }}>{totalCredits}</span>
+                      </div>
+                      {warnings.map((w) => (
+                        <div key={w.type} className="flex items-start gap-2 p-3 rounded-xl text-xs"
+                             style={{ background: 'rgba(251,191,36,0.1)', color: 'var(--warn)' }}>
+                          <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                          {w.message}
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => { setShowConfirmModal(true); setConfirmError('') }}
+                        className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
+                        style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+                        <CheckCircle size={16} />
+                        Confirmar preselección
+                      </button>
+                    </div>
+                  )}
+
                   {/* CONFIRMED: solo lectura */}
                   {current.status === 'CONFIRMED' && (
                     <div className="flex flex-col gap-3">
@@ -558,158 +630,19 @@ export default function PreseleccionPage() {
                       )}
                     </div>
                   )}
-                </div>
 
-                {/* Sidebar OPEN (desktop) */}
-                {current.status === 'OPEN' && (
-                  <aside className="hidden md:block w-72 flex-shrink-0">
-                    <div className="sticky top-24 p-4 rounded-2xl"
-                         style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-                      <h3 className="font-bold text-sm mb-4"
-                          style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-                        Resumen — {current.label}
-                      </h3>
-                      <SummaryContent />
-                    </div>
-                  </aside>
-                )}
+                </div>
               </div>
             )}
           </>
         )}
-        </>)}
-      </div>
-
-      {/* Mobile: barra sticky resumen (solo OPEN) */}
-      {view === 'preseleccion' && current?.status === 'OPEN' && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden px-4 pb-2">
-          <button onClick={() => setShowSummary(!showSummary)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl"
-                  style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                {currentSubjectCodes.length} materia{currentSubjectCodes.length !== 1 ? 's' : ''} · {totalCredits} cr.
-              </span>
-              {warnings.length > 0 && <AlertTriangle size={14} style={{ color: 'var(--warn)' }} />}
-            </div>
-            {showSummary
-              ? <ChevronDown size={16} style={{ color: 'var(--muted)' }} />
-              : <ChevronUp size={16} style={{ color: 'var(--muted)' }} />}
-          </button>
-          {showSummary && (
-            <div className="mt-1 p-4 rounded-2xl"
-                 style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
-              <SummaryContent />
-            </div>
-          )}
-        </div>
+        </>
       )}
 
-      {/* Modal: crear período */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo período">
-        <form onSubmit={handleCreate} className="flex flex-col gap-3">
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-              Nombre del período
-            </label>
-            <input
-              autoFocus
-              placeholder="Ej. Ene–Jun 2026"
-              value={createLabel}
-              onChange={(e) => setCreateLabel(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-              style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-              Inicio (mes/año)
-            </label>
-            <input
-              type="month"
-              value={createStart}
-              onChange={(e) => setCreateStart(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-              style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted)' }}>
-              Fin (mes/año)
-            </label>
-            <input
-              type="month"
-              value={createEnd}
-              onChange={(e) => setCreateEnd(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 rounded-xl text-sm border outline-none"
-              style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--pt-border)' }}
-            />
-          </div>
-          {createError && <p className="text-xs" style={{ color: '#f87171' }}>{createError}</p>}
-          <button type="submit" disabled={creating}
-                  className="py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-            {creating ? 'Creando...' : 'Crear período'}
-          </button>
-        </form>
-      </Modal>
-
-      {/* Modal: confirmar preselección */}
-      <Modal open={showConfirmModal} onClose={() => setShowConfirmModal(false)}>
-        <h3 className="font-bold text-base mb-2 text-center"
-            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-          Confirmar preselección
-        </h3>
-        <p className="text-sm text-center mb-2" style={{ color: 'var(--muted)' }}>
-          Las materias seleccionadas pasarán a estado <strong>En curso</strong>.
-          Esta acción no se puede deshacer fácilmente.
-        </p>
-        <p className="text-sm text-center font-semibold mb-6" style={{ color: 'var(--text)' }}>
-          {currentSubjectCodes.length} materia{currentSubjectCodes.length !== 1 ? 's' : ''} · {totalCredits} créditos
-        </p>
-        {confirmError && <p className="text-xs mb-3 text-center" style={{ color: '#f87171' }}>{confirmError}</p>}
-        <div className="flex gap-3">
-          <button onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-            Cancelar
-          </button>
-          <button onClick={handleConfirm} disabled={confirming}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                  style={{ background: 'var(--accent)', color: '#0b0d12' }}>
-            {confirming ? 'Confirmando...' : 'Confirmar'}
-          </button>
-        </div>
-      </Modal>
-
-      {/* Modal: eliminar período */}
-      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
-        <h3 className="font-bold text-base mb-2 text-center"
-            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
-          Eliminar período
-        </h3>
-        <p className="text-sm text-center mb-6" style={{ color: 'var(--muted)' }}>
-          {deleteTarget?.status === 'CONFIRMED'
-            ? 'Las materias en curso de este período volverán a estado pendiente.'
-            : '¿Seguro que quieres eliminar este período?'}{' '}
-          Esta acción no se puede deshacer.
-        </p>
-        <div className="flex gap-3">
-          <button onClick={() => setDeleteTarget(null)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
-            Cancelar
-          </button>
-          <button onClick={handleDelete} disabled={deleting}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                  style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
-            {deleting ? 'Eliminando...' : 'Eliminar'}
-          </button>
-        </div>
-      </Modal>
+      {showSummary && (
+        <SummaryContent />
+      )}
+      </div>
 
       {/* Modal: cerrar período (registrar resultados) */}
       <Modal
@@ -774,6 +707,118 @@ export default function PreseleccionPage() {
         </button>
       </Modal>
 
+      {/* Modal: confirmar preselección */}
+      <Modal open={showConfirmModal} onClose={() => setShowConfirmModal(false)} title="Confirmar preselección" maxWidth="max-w-lg">
+        <div className="overflow-y-auto max-h-[70dvh] flex flex-col gap-4">
+          <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>
+            Ingresa el horario y profesor para cada materia antes de confirmar.
+          </p>
+          {current?.subjects.map((code) => {
+            const s = allSubjects.find((x) => x.code === code)
+            const sched = confirmSchedules[code] ?? { classDays: [] as string[], classStart: null as string | null, classEnd: null as string | null, professorId: null as string | null, professorName: null as string | null, classroom: null as string | null }
+            return (
+              <div key={code} className="p-3 rounded-xl flex flex-col gap-2.5"
+                   style={{ background: 'var(--surface2)', border: '1px solid var(--pt-border)' }}>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                  {s?.name ?? code} <span className="text-xs font-mono" style={{ color: 'var(--muted)' }}>({code})</span>
+                </p>
+                <div className="flex gap-1.5">
+                  {DAY_OPTIONS.map((d) => {
+                    const on = sched.classDays.includes(d.value)
+                    return (
+                      <button key={d.value} type="button"
+                        onClick={() => setConfirmSchedules((prev) => {
+                          const cur = prev[code] ?? sched
+                          const days = on ? cur.classDays.filter((x) => x !== d.value) : [...cur.classDays, d.value]
+                          return { ...prev, [code]: { ...cur, classDays: days } }
+                        })}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{ background: on ? 'var(--accent)' : 'var(--bg)', color: on ? '#0b0d12' : 'var(--muted)', border: `1px solid ${on ? 'var(--accent)' : 'var(--pt-border)'}` }}>
+                        {d.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="time" value={sched.classStart ?? ''}
+                    onChange={(e) => setConfirmSchedules((prev) => ({ ...prev, [code]: { ...(prev[code] ?? sched), classStart: e.target.value || null } }))}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>a</span>
+                  <input type="time" value={sched.classEnd ?? ''}
+                    onChange={(e) => setConfirmSchedules((prev) => ({ ...prev, [code]: { ...(prev[code] ?? sched), classEnd: e.target.value || null } }))}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+                </div>
+                <div className="relative">
+                  <input value={sched.professorName ?? ''}
+                    onChange={(e) => setConfirmSchedules((prev) => ({ ...prev, [code]: { ...(prev[code] ?? sched), professorName: e.target.value || null, professorId: null } }))}
+                    onFocus={() => setConfirmProfOpen(code)}
+                    placeholder="Profesor (busca o escribe)"
+                    className="w-full px-2 py-1.5 rounded-lg text-xs outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+                  {confirmProfOpen === code && sched.professorName?.trim() && (
+                    <div className="absolute z-10 left-0 right-0 mt-1 rounded-lg overflow-hidden max-h-36 overflow-y-auto"
+                         style={{ background: 'var(--surface)', border: '1px solid var(--pt-border)' }}>
+                      {confirmProfList.filter((p) => p.name.toLowerCase().includes((sched.professorName ?? '').toLowerCase())).slice(0, 6).map((p) => (
+                        <button key={p.id} type="button"
+                          onClick={() => {
+                            setConfirmSchedules((prev) => ({ ...prev, [code]: { ...(prev[code] ?? sched), professorId: p.id, professorName: p.name } }))
+                            setConfirmProfOpen(null)
+                          }}
+                          className="block w-full text-left px-3 py-2 text-xs hover:opacity-80" style={{ color: 'var(--text)' }}>
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <input value={sched.classroom ?? ''}
+                  onChange={(e) => setConfirmSchedules((prev) => ({ ...prev, [code]: { ...(prev[code] ?? sched), classroom: e.target.value || null } }))}
+                  placeholder="Aula o lugar (opcional)"
+                  className="w-full px-2 py-1.5 rounded-lg text-xs outline-none" style={{ background: 'var(--bg)', border: '1px solid var(--pt-border)', color: 'var(--text)' }} />
+              </div>
+            )
+          })}
+          {confirmError && <p className="text-xs text-center" style={{ color: '#f87171' }}>{confirmError}</p>}
+          <div className="flex gap-3">
+            <button onClick={() => setShowConfirmModal(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+              Cancelar
+            </button>
+            <button onClick={handleConfirm} disabled={confirming}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                    style={{ background: 'var(--accent)', color: '#0b0d12' }}>
+              {confirming ? 'Confirmando...' : 'Confirmar'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: eliminar período */}
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <h3 className="font-bold text-base mb-2 text-center"
+            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text)' }}>
+          Eliminar período
+        </h3>
+        <p className="text-sm text-center mb-6" style={{ color: 'var(--muted)' }}>
+          {deleteTarget?.status === 'CONFIRMED'
+            ? 'Las materias en curso de este período volverán a estado pendiente.'
+            : '¿Seguro que quieres eliminar este período?'}{' '}
+          Esta acción no se puede deshacer.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => setDeleteTarget(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: 'var(--surface2)', color: 'var(--muted)' }}>
+            Cancelar
+          </button>
+          <button onClick={handleDelete} disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                  style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+            {deleting ? 'Eliminando...' : 'Eliminar'}
+          </button>
+        </div>
+      </Modal>
+
       {/* Modal de detalle de materia */}
       <SubjectModal
         subject={selectedSubject}
@@ -782,6 +827,7 @@ export default function PreseleccionPage() {
         getSubjectStatus={getSubjectStatus}
         preselectedCodes={currentSubjectCodes}
         onClose={() => setSelectedSubject(null)}
+        gradeOf={(code) => profile?.subjects.find(s => s.subjectCode === code)?.grade ?? null}
         onTogglePreselection={current?.status === 'OPEN' ? handleToggle : undefined}
       />
     </>

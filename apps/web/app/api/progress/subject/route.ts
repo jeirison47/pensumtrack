@@ -13,6 +13,7 @@ const schema = z.object({
   classEnd: z.string().nullable().optional(),
   professorId: z.string().nullable().optional(),
   professorName: z.string().nullable().optional(),
+  classroom: z.string().nullable().optional(),
 })
 
 export async function PUT(request: NextRequest) {
@@ -46,8 +47,9 @@ export async function PUT(request: NextRequest) {
         classEnd: result.data.classEnd ?? null,
         professorId: result.data.professorId ?? null,
         professorName: result.data.professorName ?? null,
+        classroom: result.data.classroom ?? null,
       }
-    : { classDays: [], classStart: null, classEnd: null, professorId: null, professorName: null }
+    : { classDays: [], classStart: null, classEnd: null, professorId: null, professorName: null, classroom: null }
 
   const studentSubject = await prisma.studentSubject.upsert({
     where: { profileId_subjectCode: { profileId: profile.id, subjectCode } },

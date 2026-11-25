@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
   const passed     = profile.subjects.filter((s) => s.status === 'PASSED').length
   const inProgress = profile.subjects.filter((s) => s.status === 'IN_PROGRESS').length
-  const presel     = profile.preselections.reduce((sum, p) => sum + p.subjects.length, 0)
+  const presel     = profile.preselections.filter((p) => p.status === 'OPEN').reduce((sum, p) => sum + p.subjects.length, 0)
   const available  = allSubjects.filter((s) => getSubjectStatus(s.code) === 'available').length
   const earnedCredits = allSubjects
     .filter((s) => profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'PASSED'))
@@ -77,9 +77,18 @@ export default function DashboardPage() {
   const totalCredits = profile.pensum?.totalCredits ?? profile.career.totalCredits ?? allSubjects.reduce((s, sub) => s + sub.credits, 0)
   const pct = Math.round((earnedCredits / totalCredits) * 100)
 
-  const inProgressSubjects = allSubjects.filter((s) =>
-    profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'IN_PROGRESS')
-  )
+  const DAY_ORDER: Record<string, number> = { MON: 0, TUE: 1, WED: 2, THU: 3, FRI: 4, SAT: 5, SUN: 6 }
+
+  const inProgressSubjects = allSubjects
+    .filter((s) => profile.subjects.find((ss) => ss.subjectCode === s.code && ss.status === 'IN_PROGRESS'))
+    .sort((a, b) => {
+      const sa = profile.subjects.find((ss) => ss.subjectCode === a.code)
+      const sb = profile.subjects.find((ss) => ss.subjectCode === b.code)
+      const dayA = sa?.classDays?.[0] ? (DAY_ORDER[sa.classDays[0]] ?? 99) : 99
+      const dayB = sb?.classDays?.[0] ? (DAY_ORDER[sb.classDays[0]] ?? 99) : 99
+      if (dayA !== dayB) return dayA - dayB
+      return (sa?.classStart ?? 'zz').localeCompare(sb?.classStart ?? 'zz')
+    })
 
   const DAY_LABELS: Record<string, string> = { MON: 'Lun', TUE: 'Mar', WED: 'Mié', THU: 'Jue', FRI: 'Vie', SAT: 'Sáb', SUN: 'Dom' }
   const scheduleLine = (code: string): string | null => {

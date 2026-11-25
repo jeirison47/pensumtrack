@@ -146,6 +146,7 @@ export default function DesbloqueoPage() {
         getSubjectStatus={getSubjectStatus}
         preselectedCodes={preselectedCodes}
         onClose={() => setSelected(null)}
+        gradeOf={(code) => profile?.subjects.find(s => s.subjectCode === code)?.grade ?? null}
       />
     </>
   )

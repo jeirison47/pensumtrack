@@ -90,9 +90,10 @@ export const progressApi = {
       body: JSON.stringify({ subjectCodes }),
     }),
 
-  confirmPeriod: (id: string) =>
+  confirmPeriod: (id: string, schedules?: Record<string, ClassSchedule>) =>
     request<{ data: PreselectionDB }>(`/progress/preselections/${id}/confirm`, {
       method: 'PUT',
+      body: JSON.stringify({ schedules: schedules ?? {} }),
     }),
 
   closePeriod: (id: string, results: { subjectCode: string; status: 'PASSED' | 'FAILED'; grade?: number }[]) =>
@@ -344,6 +345,7 @@ export interface ClassSchedule {
   classEnd: string | null
   professorId: string | null
   professorName: string | null
+  classroom: string | null
 }
 
 export interface StudentSubjectDB {
@@ -357,6 +359,7 @@ export interface StudentSubjectDB {
   classEnd?: string | null
   professorId?: string | null
   professorName?: string | null
+  classroom?: string | null
 }
 
 export type PreselectionStatus = 'OPEN' | 'CONFIRMED' | 'CLOSED'

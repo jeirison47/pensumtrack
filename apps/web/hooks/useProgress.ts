@@ -22,6 +22,62 @@ export function useProgress() {
   const invalidateProgress = () =>
     queryClient.invalidateQueries({ queryKey: ['progress'] })
 
+  const addCachedPreselection = (preselection: import('@/services/api').PreselectionDB) => {
+    queryClient.setQueryData<{ data: import('@/services/api').StudentProfileFull }>(['progress'], (old) => {
+      if (!old?.data) return old
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          preselections: [...old.data.preselections, preselection],
+        },
+      }
+    })
+  }
+
+  const updateCachedPreselectionSubjects = (id: string, subjectCodes: string[]) => {
+    queryClient.setQueryData<{ data: import('@/services/api').StudentProfileFull }>(['progress'], (old) => {
+      if (!old?.data) return old
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          preselections: old.data.preselections.map((p) =>
+            p.id === id ? { ...p, subjects: subjectCodes } : p,
+          ),
+        },
+      }
+    })
+  }
+
+  const updateCachedPreselectionStatus = (id: string, status: import('@/services/api').PreselectionDB['status']) => {
+    queryClient.setQueryData<{ data: import('@/services/api').StudentProfileFull }>(['progress'], (old) => {
+      if (!old?.data) return old
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          preselections: old.data.preselections.map((p) =>
+            p.id === id ? { ...p, status } : p,
+          ),
+        },
+      }
+    })
+  }
+
+  const removeCachedPreselection = (id: string) => {
+    queryClient.setQueryData<{ data: import('@/services/api').StudentProfileFull }>(['progress'], (old) => {
+      if (!old?.data) return old
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          preselections: old.data.preselections.filter((p) => p.id !== id),
+        },
+      }
+    })
+  }
+
   useEffect(() => {
     if (data?.data !== undefined) setProfile(data.data)
   }, [data, setProfile])
@@ -51,5 +107,5 @@ export function useProgress() {
     return calcSubjectStatus(subject, studentSubjects, preselectedCodes)
   }
 
-  return { profile, isLoading, refetch, getSubjectStatus, preselectedCodes, invalidateProgress, allSubjects }
+  return { profile, isLoading, refetch, getSubjectStatus, preselectedCodes, invalidateProgress, addCachedPreselection, updateCachedPreselectionSubjects, updateCachedPreselectionStatus, removeCachedPreselection, allSubjects }
 }
